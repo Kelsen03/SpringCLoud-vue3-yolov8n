@@ -1,0 +1,37 @@
+# 日志文件
+logs/
+*.log
+
+# Nacos
+nacos/
+
+# 前端依赖与构建产物
+node_modules/
+dist/
+build/
+.npm/
+
+# 后端 Java/Maven 编译产物
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# 压缩包文件 (防止大文件上传失败)
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# IDE 配置文件
+.idea/
+*.iml
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# 操作系统生成文件
+.DS_Store
+Thumbs.db
