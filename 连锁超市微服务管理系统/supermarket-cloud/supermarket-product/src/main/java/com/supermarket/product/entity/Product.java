@@ -10,6 +10,8 @@ public class Product {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String name;
+    private String barcode;
+    private String category;
     private BigDecimal price;
     private BigDecimal promoPrice;
     private Integer isLocal;
@@ -20,6 +22,10 @@ public class Product {
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public BigDecimal getPromoPrice() { return promoPrice; }

@@ -46,6 +46,12 @@
             <version>1.1.1</version>
         </dependency>
 
+        <!-- Spring Security (提供 BCrypt 密码加密与安全框架) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Database -->
         <dependency>
             <groupId>mysql</groupId>

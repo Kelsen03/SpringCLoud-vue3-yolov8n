@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -131,6 +132,8 @@ public class OrderController {
 
         // 3. 保存订单
         Order order = new Order();
+        order.setOrderNo("ORD" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
+                + String.format("%03d", (int)(Math.random() * 1000)));
         order.setStoreId(storeIdUsed);
         order.setMemberId(validMember ? memberId : null);
         order.setTotalPrice(total);
@@ -168,7 +171,9 @@ public class OrderController {
             }
             totalPoints = memberMapper.selectById(memberId).getPoints();
         }
-        return new OrderResponse(order.getId(), points, totalPoints);
+        OrderResponse resp = new OrderResponse(order.getId(), points, totalPoints);
+        resp.setOrderNo(order.getOrderNo());
+        return resp;
     }
 
     /**
@@ -226,6 +231,7 @@ public class OrderController {
         // 构造返回对象
         OrderResponse response = new OrderResponse();
         response.setOrderId(order.getId());
+        response.setOrderNo(order.getOrderNo());
         response.setPoints(order.getPoints());
         response.setItems(items); // 把明细列表装进去
         // 为了前端展示方便，将创建时间和总价也放进去

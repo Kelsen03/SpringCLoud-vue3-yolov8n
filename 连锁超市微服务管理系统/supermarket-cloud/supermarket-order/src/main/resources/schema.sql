@@ -2,11 +2,13 @@
 -- DROP TABLE IF EXISTS `order`;
 CREATE TABLE IF NOT EXISTS `order` (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(50),
   store_id BIGINT,
   member_id BIGINT,
   total_price DECIMAL(10,2),
   points INT,
   create_time DATETIME,
+  create_by VARCHAR(50),
   cashier_account VARCHAR(50)
 );
 

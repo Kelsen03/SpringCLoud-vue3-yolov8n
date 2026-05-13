@@ -14,18 +14,17 @@ import java.util.List;
 @NoArgsConstructor
 public class OrderResponse {
     private Long orderId;
+    private String orderNo;
     private Integer points;
     private Integer totalPoints;
-    
-    // 用于详情接口，包含订单明细
+
     private List<OrderItem> items;
-    
-    // 扩展字段，方便前端渲染小票
+
     private Date createTime;
     private BigDecimal totalPrice;
     private Long memberId;
-    private String createBy; // 增加返回收银员账号
-    
+    private String createBy;
+
     public OrderResponse(Long orderId, Integer points, Integer totalPoints) {
         this.orderId = orderId;
         this.points = points;
