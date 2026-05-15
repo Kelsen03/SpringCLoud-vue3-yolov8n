@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 
 const request = axios.create({
   // 生产环境使用相对路径，开发环境使用代理或硬编码
-  baseURL: 'http://8.148.247.3:8000', 
+  baseURL: 'http://8.148.236.60:8000', 
   timeout: 5000
 })
 
