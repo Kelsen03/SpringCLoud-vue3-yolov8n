@@ -1,86 +1,164 @@
-# 连锁超市微服务管理系统 (SpringCloud + Vue3 + YOLOv8n)
+# 连锁超市微服务管理系统
 
-本项目是一个基于**微服务架构**的连锁超市综合管理系统，采用前后端分离模式开发。系统不仅涵盖了传统的超市商品、库存、订单等核心业务管理，还创新性地引入了基于 **YOLOv8** 的 AI 图像识别技术，实现对特定商品（如不同品牌饮料）的智能识别。
-
-## 🏗️ 系统架构与技术栈
-
-### 1. 后端 (Spring Cloud 微服务)
-后端采用 Spring Cloud Alibaba 生态构建，划分为多个独立职责的微服务模块：
-- **核心框架**: Spring Boot (2.7.18) + Java 8
-- **微服务组件**: Spring Cloud (2021.0.8) + Spring Cloud Alibaba (2021.0.5.0)
-- **注册中心/配置中心**: Nacos
-- **API 网关**: Spring Cloud Gateway
-- **服务间调用**: OpenFeign + LoadBalancer
-- **数据持久化**: MySQL (8.0.33) + MyBatis-Plus (3.5.3.1)
-- **安全认证**: JWT (JSON Web Token)
-- **模块划分**: 
-  - `gateway`: 统一网关路由
-  - `auth`: 用户认证授权中心
-  - `product`: 商品管理服务
-  - `inventory`: 库存管理服务
-  - `order`: 订单管理服务
-  - `analysis`: 数据统计分析服务
-
-### 2. 前端 (Vue 3)
-前端采用最新的 Vue 3 技术栈打造现代化后台管理界面：
-- **核心框架**: Vue 3
-- **构建工具**: Vite
-- **UI 组件库**: Element Plus
-- **路由与状态**: Vue Router 4
-- **网络请求**: Axios
-- **数据可视化**: ECharts (用于报表分析)
-- **其他依赖**: Dayjs, XLSX (用于导出 Excel)
-
-### 3. AI 图像识别服务 (Python)
-独立的 Python 服务，用于处理前端上传的图像，进行智能分析：
-- **核心框架**: Flask + Flask-CORS 提供 RESTful API
-- **AI 算法**: **YOLOv8** (使用轻量级 `yolov8n.pt` 模型) 进行目标检测
-- **图像处理**: OpenCV + NumPy (结合 HSV 色彩空间进行二次分析)
-- **主要功能**: 接收 Base64 图片数据，识别出特定商品（如通过颜色特征区分可口可乐、雪碧、农夫山泉等），返回识别结果。
+基于 **Spring Cloud Alibaba + Vue3 + YOLOv8** 的连锁超市综合管理平台，涵盖商品管理、多门店库存隔离、跨店调拨、智能收银、数据分析及收银员换班等完整业务链路。
 
 ---
 
-## 🚀 快速启动指南
+## 🏗️ 技术架构
 
-### 环境准备
-在运行项目前，请确保本地已安装以下环境：
-- JDK 1.8
-- Maven 3.6+
-- MySQL 8.0+
-- Node.js 16+ (推荐 18.x)
-- Python 3.8+ (需安装 `ultralytics`, `flask`, `opencv-python` 等依赖)
-- Nacos Server (建议 2.x 版本)
+### 后端（Spring Cloud 微服务）
 
-### 1. 启动后端微服务
-1. 在 MySQL 中创建对应的数据库，并导入相关的 SQL 脚本（请检查各模块资源目录）。
-2. 启动 Nacos 服务端。
-3. 修改各微服务（在 Nacos 或 `application.yml` 中）的数据库连接配置及 Nacos 地址。
-4. 按顺序启动微服务：
-   - 先启动 `gateway` 和 `auth` 服务。
-   - 随后启动 `product`、`inventory`、`order` 等业务微服务。
+| 组件 | 技术 | 版本 |
+|------|------|------|
+| 基础框架 | Spring Boot | 2.7.18 |
+| 微服务治理 | Spring Cloud + Alibaba | 2021.0.8 / 2021.0.5.0 |
+| 注册中心 | Nacos | 2.x |
+| API 网关 | Spring Cloud Gateway | — |
+| 服务间调用 | OpenFeign + LoadBalancer | — |
+| 安全认证 | JWT + BCrypt + Spring Security | — |
+| ORM | MyBatis-Plus | 3.5.3.1 |
+| 数据库 | MySQL | 8.0 |
+| 缓存 | Redis | 6.2+ |
+| 语言 | Java | 8 |
 
-### 2. 启动 AI 识别服务
-1. 进入 Python 脚本所在目录。
-2. 安装所需依赖：`pip install ultralytics flask flask-cors opencv-python numpy`
-3. 运行服务：`python ai_server.py`
-4. 确保模型文件 `yolov8n.pt` 能够被正确加载。
+**微服务模块**：
 
-### 3. 启动前端管理系统
-1. 进入 `前端` 目录：
-   ```bash
-   cd 前端
-   ```
-2. 安装依赖：
-   ```bash
-   npm install
-   ```
-3. 运行开发服务器：
-   ```bash
-   npm run dev
-   ```
-4. 在浏览器中打开控制台输出的本地地址（如 `http://localhost:5173`）即可访问系统。
+| 服务 | 端口 | 职责 |
+|------|------|------|
+| `gateway` | 8000 | 统一入口，JWT 鉴权，路由转发 |
+| `auth` | 9000 | 用户登录注册，BCrypt 密码加密，JWT 签发 |
+| `product` | 9001 | 商品档案管理，统配/自营权限隔离，Redis 缓存 |
+| `inventory` | 9002 | 库存原子扣减，跨店调拨，FIFO 日期合并 |
+| `order` | 9003 | 收银下单，会员积分，订单流水号，换班管理 |
+| `analysis` | 9004 | 定时数据聚合，门店/商品排行，区域偏好分析 |
+
+### 前端（Vue 3）
+
+| 技术 | 说明 |
+|------|------|
+| Vue 3 | `<script setup>` 组合式 API |
+| Vite | 构建工具 |
+| Element Plus | UI 组件库 |
+| ECharts | 数据分析图表 |
+| Axios | HTTP 请求 |
+| Vue Router 4 | 角色路由守卫 |
+
+### AI 识别服务（Python）
+
+| 技术 | 说明 |
+|------|------|
+| Flask | RESTful API |
+| YOLOv8n | 轻量目标检测（~3.2M 参数） |
+| OpenCV | HSV 色彩空间分析（内存 <200MB） |
+
+---
+
+## ✨ 核心功能
+
+### 库存管理
+- **行级锁原子扣减**：`WHERE stock >= #{count}` 下沉至 InnoDB 引擎层，杜绝超卖
+- **跨店调拨**：源店扣减 + 目标店增加 + 流水记录，`@Transactional` 事务保障
+- **FIFO 日期合并**：调拨时按先进先出原则保留最早生产日期
+- **自动可见性修复**：调拨后自动将私有商品升级为全局商品，解决跨店数据孤岛
+
+### 商品管理
+- **统配/自营隔离**：`isLocal` + SQL 动态条件，数据级权限过滤
+- **条形码支持**：EAN-13 规范，适配扫码枪
+- **Redis 缓存**：商品列表 30 分钟过期，更新/新增自动清缓存
+
+### 智能收银（POS）
+- **换班系统**：开班输入备用金 → 收银 → 交班自动对账（理论现金 vs 实际现金）
+- **AI 视觉识别**：YOLOv8 定位 + HSV 颜色分析区分饮料
+- **热门商品**：按 `product_sales` 累计销量 TOP10，点即加入购物车
+- **会员积分**：1000 积分抵 5 元
+
+### 数据分析
+- **门店销售额占比**：饼图，按 `order` 表实时聚合
+- **商品销量 TOP10**：横向柱状图
+- **区域热销偏好**：门店 × 品类堆叠柱状图，分类动态从数据库读取
+- **定时聚合**：`@Scheduled` 每日凌晨 2 点自动执行
+
+### 安全
+- **BCrypt 密码哈希**：不可逆加密，盐值内嵌密文
+- **JWT 无状态认证**：Payload 含角色 + 门店 ID，Gateway 统一拦截
+- **DataInitializer**：首次启动自动初始化默认账号
+
+---
+
+## 🚀 快速启动
+
+### 环境要求
+- JDK 1.8 / Maven 3.6+
+- MySQL 8.0 / Redis 6.2+
+- Node.js 16+
+- Python 3.8+（AI 服务可选）
+
+### 1. 后端
+```bash
+cd 连锁超市微服务管理系统/supermarket-cloud
+mvn clean package -DskipTests
+
+# 按顺序启动：gateway → auth → product → inventory → order → analysis
+java -jar supermarket-gateway/target/supermarket-gateway-*.jar
+java -jar supermarket-auth/target/supermarket-auth-*.jar
+# ...
+```
+
+### 2. 前端
+```bash
+cd 前端/supermarket-ui
+npm install
+npm run dev       # 开发
+npm run build     # 生产 → dist/
+```
+
+### 3. AI 服务
+```bash
+pip install ultralytics flask flask-cors opencv-python
+cd 前端
+python ai_server.py   # 端口 5000
+```
+
+### 4. 种子数据
+```bash
+# 导入商品数据（432 条，17 品类）
+mysql -u root -p supermarket_product < product_import.sql
+
+# 初始化库存（每商品 × 3 门店）
+# 见服务器部署文档
+```
+
+---
+
+## 📁 项目结构
+
+```
+陆铿全源码/
+├── 前端/
+│   ├── supermarket-ui/      # Vue3 前端项目
+│   │   ├── src/views/       # 页面组件
+│   │   │   ├── Login.vue    # 登录页（暗色主题 + 居中品牌标识）
+│   │   │   ├── Pos.vue      # 收银台（换班 + AI 识别）
+│   │   │   ├── Product.vue  # 商品定价管理
+│   │   │   ├── Analysis.vue # 数据分析看板
+│   │   │   └── ...
+│   │   └── dist/            # 生产构建输出
+│   └── ai_server.py         # Python AI 识别服务
+│
+└── 连锁超市微服务管理系统/
+    └── supermarket-cloud/   # Spring Cloud 父工程
+        ├── supermarket-gateway/
+        ├── supermarket-auth/
+        ├── supermarket-product/
+        ├── supermarket-inventory/
+        ├── supermarket-order/
+        └── supermarket-analysis/
+```
 
 ---
 
 ## 📝 许可证
+
 本项目仅供学习交流使用。
+
+Copyright © 2026 陆铿全
