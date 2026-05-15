@@ -55,6 +55,13 @@ public class JwtUtil {
         return null;
     }
 
+    /** 从Token提取用户名 */
+    public static String username(String token) {
+        if (token == null) return null;
+        Claims claims = parseToken(token);
+        return claims != null ? claims.getSubject() : null;
+    }
+
     public static Long storeId(String token) {
         if (token == null) return null;
         Claims claims = parseToken(token);

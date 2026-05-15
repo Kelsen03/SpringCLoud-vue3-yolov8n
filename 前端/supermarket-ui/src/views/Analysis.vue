@@ -55,131 +55,84 @@ const preferenceChartRef = ref(null)
 
 // 初始化图表
 const initCharts = async () => {
-  // 1. 获取并渲染商品销量排行
+  // 1. 商品销量 TOP10
   try {
     const rankRes = await getProductRank()
-    const rankData = rankRes.data || [] 
-    // 后端返回字段: product_name, category, total_quantity
-    
-    const rankChart = echarts.init(rankChartRef.value)
-    rankChart.setOption({
-      tooltip: { 
-        trigger: 'axis',
-        formatter: (params) => {
-          const item = rankData.find(d => d.product_name === params[0].name)
-          return `${params[0].name}<br/>类别: ${item?.category || '未知'}<br/>销量: ${params[0].value}`
-        }
-      },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-      yAxis: { 
-        type: 'category', 
-        data: rankData.map(item => item.product_name).reverse() 
-      },
-      series: [{
-        name: '销量',
-        type: 'bar',
-        data: rankData.map(item => item.total_quantity).reverse(),
-        itemStyle: { 
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#83bff6' },
-            { offset: 0.5, color: '#188df0' },
-            { offset: 1, color: '#188df0' }
-          ]),
-          borderRadius: [0, 4, 4, 0]
-        },
-        label: { show: true, position: 'right' }
-      }]
-    })
-  } catch (e) {
-    console.error('获取商品排行失败', e)
-  }
+    const rankData = (rankRes.data || []).slice(0, 10)
 
-  // 2. 获取并渲染门店销售排行
+    const rankChart = echarts.init(rankChartRef.value)
+    if (rankData.length === 0) {
+      rankChart.setOption({ title: { text: '暂无数据', left:'center', top:'center', textStyle:{color:'#999'} } })
+    } else {
+      rankChart.setOption({
+        tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name}<br/>销量: ${p[0].value}` },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+        yAxis: { type: 'category', data: rankData.map(i => i.product_name).reverse() },
+        series: [{
+          type: 'bar',
+          data: rankData.map(i => i.total_quantity).reverse(),
+          itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#83bff6'},{offset:1,color:'#188df0'}]), borderRadius:[0,4,4,0] },
+          label: { show: true, position: 'right' }
+        }]
+      })
+    }
+  } catch (e) { console.error('商品排行失败', e) }
+
+  // 2. 门店销售额占比
   try {
     const storeRes = await getStoreRank()
-    const storeData = storeRes.data || [] 
-    
+    const storeData = storeRes.data || []
+
     const storeChart = echarts.init(storeChartRef.value)
-    storeChart.setOption({
-      tooltip: { trigger: 'item' },
-      legend: { bottom: '0%' },
-      series: [{
-        name: '销售额',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          formatter: '{b}: {d}%'
-        },
-        data: storeData.map(item => ({
-          value: item.total_sales,
-          name: `门店 ${item.store_id}`
-        }))
-      }]
-    })
-  } catch (e) {
-    console.error('获取门店排行失败', e)
-  }
-
-  // 3. 区域热销偏好 (新增)
-  try {
-    let prefData = []
-    try {
-      const res = await getRegionPreference()
-      prefData = res.data || []
-    } catch (e) {
-      // 模拟数据 (当后端接口未就绪时展示效果)
-      prefData = [
-        { store_id: 1, category: '饮品', sales: 150 },
-        { store_id: 1, category: '食品', sales: 200 },
-        { store_id: 1, category: '生活用品', sales: 80 },
-        { store_id: 2, category: '饮品', sales: 180 },
-        { store_id: 2, category: '食品', sales: 120 },
-        { store_id: 2, category: '生活用品', sales: 90 },
-        { store_id: 3, category: '饮品', sales: 100 },
-        { store_id: 3, category: '食品', sales: 110 },
-        { store_id: 3, category: '生活用品', sales: 160 },
-      ]
+    if (storeData.length === 0) {
+      storeChart.setOption({ title: { text: '暂无数据', left:'center', top:'center', textStyle:{color:'#999'} } })
+    } else {
+      storeChart.setOption({
+        tooltip: { trigger: 'item' },
+        legend: { bottom: '0%' },
+        series: [{
+          type: 'pie', radius: ['40%','70%'], itemStyle: { borderRadius:10, borderColor:'#fff', borderWidth:2 },
+          label: { show:true, formatter:'{b}: {d}%' },
+          data: storeData.map(i => ({ value: i.total_sales, name: `门店 ${i.store_id}` }))
+        }]
+      })
     }
+  } catch (e) { console.error('门店排行失败', e) }
 
-    // 数据处理：转为 ECharts dataset 格式
-    const stores = [...new Set(prefData.map(d => d.store_id))].sort()
-    const categories = ['饮品', '食品', '生活用品']
-    
-    const series = categories.map(cat => {
-      return {
-        name: cat,
-        type: 'bar',
-        stack: 'total',
-        label: { show: true },
-        emphasis: { focus: 'series' },
-        data: stores.map(storeId => {
-          const item = prefData.find(d => d.store_id === storeId && d.category === cat)
+  // 3. 区域热销偏好
+  try {
+    const res = await getRegionPreference()
+    const prefData = res.data || []
+
+    if (prefData.length === 0) {
+      const prefChart = echarts.init(preferenceChartRef.value)
+      prefChart.setOption({
+        title: { text: '暂无数据\n请先进行收银交易', left:'center', top:'center', textStyle:{color:'#999',fontSize:14} }
+      })
+    } else {
+      const stores = [...new Set(prefData.map(d => d.store_id))].sort()
+      const categories = [...new Set(prefData.map(d => d.category))]
+
+      const series = categories.map(cat => ({
+        name: cat, type: 'bar', stack: 'total',
+        label: { show: true }, emphasis: { focus: 'series' },
+        data: stores.map(s => {
+          const item = prefData.find(d => d.store_id === s && d.category === cat)
           return item ? item.sales : 0
         })
-      }
-    })
+      }))
 
-    const prefChart = echarts.init(preferenceChartRef.value)
-    prefChart.setOption({
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { top: '0%' },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true, top: '10%' },
-      xAxis: { 
-        type: 'category', 
-        data: stores.map(s => `门店 ${s}`) 
-      },
-      yAxis: { type: 'value' },
-      series: series
-    })
-
+      const prefChart = echarts.init(preferenceChartRef.value)
+      prefChart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { top: '0%' },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true, top: '10%' },
+        xAxis: { type: 'category', data: stores.map(s => `门店 ${s}`) },
+        yAxis: { type: 'value' },
+        series
+      })
+    }
   } catch (e) {
     console.error('获取区域偏好失败', e)
   }

@@ -1,19 +1,24 @@
 <template>
   <div class="login-page">
-    <!-- 动态流光背景 -->
-    <div class="ambient-background">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
+    <!-- 轮播图背景 -->
+    <div class="carousel-background">
+      <div 
+        v-for="(img, index) in bgImages" 
+        :key="index"
+        class="bg-image"
+        :class="{ active: currentBgIndex === index }"
+        :style="{ backgroundImage: `url(${img})` }"
+      ></div>
     </div>
-    <!-- 全屏毛玻璃遮罩 -->
+
+    <!-- 全屏浅色毛玻璃遮罩 -->
     <div class="glass-overlay"></div>
 
     <div class="content-layer">
-      <div class="system-brand">
-      <div class="logo-circle">🛒</div>
-      <span class="system-name">连锁超市微服务管理系统</span>
-    </div>
+      <div class="brand-hero">
+        <div class="brand-icon">🛒</div>
+        <h1 class="brand-title">连锁超市微服务管理系统</h1>
+      </div>
 
     <div class="main-content">
       <div class="login-container">
@@ -49,7 +54,7 @@
             <div class="info-icon-wrapper">
               <el-icon><UserFilled /></el-icon>
             </div>
-            <p>本超市管理系统基于 Spring Cloud 微服务与 Vue3 构建，集成了多门店库存隔离、智能扫码收银及 YOLOv5 图像视觉识别等核心模块，旨在为您提供高效、安全的零售管理体验。</p>
+            <p>本超市管理系统基于 Spring Cloud 微服务与 Vue3 构建，集成了多门店库存隔离、智能扫码收银及 YOLOv8 图像视觉识别等核心模块，旨在为您提供高效、安全的零售管理体验。</p>
           </div>
           
           <el-form-item class="submit-item">
@@ -86,7 +91,7 @@
 <script setup>
 import request from '@/utils/request'
 import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UserFilled, Platform, Search, Goods } from '@element-plus/icons-vue'
 
@@ -94,6 +99,26 @@ const router = useRouter()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
+
+// 轮播图逻辑
+const bgImages = [
+  'https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+  'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
+]
+const currentBgIndex = ref(0)
+let bgTimer = null
+
+onMounted(() => {
+  bgTimer = setInterval(() => {
+    currentBgIndex.value = (currentBgIndex.value + 1) % bgImages.length
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (bgTimer) clearInterval(bgTimer)
+})
 
 const login = async () => {
   if (!username.value || !password.value) {
@@ -154,44 +179,38 @@ const login = async () => {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background-color: #000000;
+  background-color: #f5f5f7;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-/* 深色动态流光背景 */
-.ambient-background {
+/* 轮播图背景 */
+.carousel-background {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  overflow: hidden;
   z-index: 1;
+  background-color: #f5f5f7;
 }
-
-.blob {
+.bg-image {
   position: absolute;
-  filter: blur(100px);
-  opacity: 0.8;
-  animation: darkFloat 15s infinite ease-in-out alternate;
-  border-radius: 50%;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out, transform 6s linear;
+  transform: scale(1.05);
+}
+.bg-image.active {
+  opacity: 1;
+  transform: scale(1);
 }
 
-.blob-1 { top: -20%; left: -10%; width: 60vw; height: 60vw; background: #001540; animation-delay: 0s; }
-.blob-2 { bottom: -20%; right: -10%; width: 70vw; height: 70vw; background: #1a0033; animation-delay: -5s; }
-.blob-3 { top: 30%; left: 20%; width: 50vw; height: 50vw; background: #002244; animation-delay: -10s; }
-
-@keyframes darkFloat {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  33% { transform: translate(5%, 10%) scale(1.1) rotate(10deg); }
-  66% { transform: translate(-5%, -5%) scale(0.9) rotate(-5deg); }
-  100% { transform: translate(2%, -10%) scale(1.05) rotate(5deg); }
-}
-
-/* 全屏深色毛玻璃遮罩 */
+/* 全屏浅色毛玻璃遮罩 */
 .glass-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(10, 10, 15, 0.7);
-  backdrop-filter: saturate(180%) blur(80px);
-  -webkit-backdrop-filter: saturate(180%) blur(80px);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: saturate(180%) blur(25px);
+  -webkit-backdrop-filter: saturate(180%) blur(25px);
   z-index: 2;
 }
 
@@ -204,36 +223,23 @@ const login = async () => {
   min-height: 100vh;
 }
 
-/* 左上角系统 Logo (深色模式适配) */
-.system-brand {
-  position: absolute;
-  top: 30px;
-  left: 40px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 10;
+/* 居中放大品牌标识 */
+.brand-hero {
+  text-align: center;
+  margin-top: 24px;
+  margin-bottom: 16px;
 }
-
-.logo-circle {
-  width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  backdrop-filter: blur(10px);
+.brand-icon {
+  font-size: 52px;
+  line-height: 1;
+  margin-bottom: 12px;
 }
-
-.system-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f5f5f7;
-  letter-spacing: 0.5px;
+.brand-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: 2px;
 }
 
 /* 主内容区 */
@@ -260,7 +266,7 @@ const login = async () => {
   margin: 0;
   font-size: 28px;
   font-weight: 600;
-  color: #f5f5f7;
+  color: #1d1d1f;
   letter-spacing: -0.5px;
 }
 
@@ -268,10 +274,10 @@ const login = async () => {
   position: relative;
   width: 100%;
   height: 56px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   box-sizing: border-box;
@@ -279,8 +285,8 @@ const login = async () => {
 
 .apple-input-group:focus-within {
   border-color: #0a84ff;
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
 }
 
 .apple-floating-label {
@@ -322,7 +328,7 @@ const login = async () => {
   height: 100% !important;
   padding-top: 18px !important;
   font-size: 17px !important;
-  color: #f5f5f7 !important;
+  color: #1d1d1f !important;
 }
 
 :deep(.el-input__suffix) {
@@ -358,16 +364,16 @@ const login = async () => {
 :deep(.el-select__selected-item),
 :deep(.el-select .el-input__inner) {
   font-size: 17px !important;
-  color: #f5f5f7 !important;
-  -webkit-text-fill-color: #f5f5f7 !important;
+  color: #1d1d1f !important;
+  -webkit-text-fill-color: #1d1d1f !important;
   line-height: normal !important;
   height: auto !important;
   padding: 0 !important;
 }
 
 :deep(.el-select__selected-item span) {
-  color: #f5f5f7 !important;
-  -webkit-text-fill-color: #f5f5f7 !important;
+  color: #1d1d1f !important;
+  -webkit-text-fill-color: #1d1d1f !important;
 }
 
 :deep(.el-select__placeholder.is-transparent) {
@@ -404,7 +410,7 @@ const login = async () => {
 .info-paragraph p {
   margin: 0;
   font-size: 12px;
-  color: #86868b;
+  color: #1d1d1f;
   line-height: 1.5;
 }
 
@@ -444,7 +450,7 @@ const login = async () => {
 .apple-footer {
   background-color: transparent;
   padding: 20px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   margin-top: auto;
 }
 
@@ -471,11 +477,11 @@ const login = async () => {
 }
 
 .footer-links .el-link:hover {
-  color: #f5f5f7;
+  color: #1d1d1f;
 }
 
 .divider {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 768px) {

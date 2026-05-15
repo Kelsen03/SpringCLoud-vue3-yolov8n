@@ -1,54 +1,55 @@
 <template>
   <div class="order-page">
-    <!-- 阶段一：欢迎界面 -->
-    <div v-if="!isStarted" class="welcome-box">
-      <div class="welcome-card glass-effect">
+    <!-- ========= 阶段0：未开班 ========= -->
+    <div v-if="!isShiftOpen" class="shift-box">
+      <div class="shift-card">
+        <div class="shift-icon">🏪</div>
+        <h2>收银员交班系统</h2>
+        <p>开始收银前请先开班，输入找零备用金</p>
+        <div class="shift-input">
+          <span class="prefix">¥</span>
+          <input v-model="openingCash" type="number" step="0.01" min="0" placeholder="备用金金额" @keyup.enter="doOpenShift" />
+        </div>
+        <el-button type="primary" size="large" @click="doOpenShift" :loading="shiftLoading" class="shift-btn">
+          开班上岗
+        </el-button>
+        <p class="hint">备用金 = 收银机里预先放好的零钱，用于给顾客找零</p>
+      </div>
+    </div>
+
+    <!-- ========= 阶段1：欢迎界面（已开班，未开始收银） ========= -->
+    <div v-else-if="!isStarted" class="welcome-box">
+      <div class="welcome-card">
+        <div class="shift-bar">
+          <el-tag type="success" size="large">🟢 当班中</el-tag>
+          <span>备用金 ¥{{ shiftOpeningCash }}</span>
+          <el-button type="warning" size="small" plain @click="showCloseDialog = true">交班</el-button>
+        </div>
         <div class="welcome-icon">👋</div>
         <h2>欢迎使用智能收银系统</h2>
         <p>请输入会员ID开始收银，散客请直接回车</p>
-        
         <div class="input-area">
-          <el-input 
-            v-model="userId" 
-            placeholder="会员ID (可选)" 
-            size="large" 
-            class="welcome-input"
-            @keyup.enter="startCheckout"
-          >
-            <template #prefix>
-              <el-icon><User /></el-icon>
-            </template>
+          <el-input v-model="userId" placeholder="会员ID (可选)" size="large" class="welcome-input" @keyup.enter="startCheckout">
+            <template #prefix><el-icon><User /></el-icon></template>
           </el-input>
-          
           <el-button type="primary" size="large" class="start-btn" @click="startCheckout">
-            开始收银
-            <el-icon class="el-icon--right"><ArrowRight /></el-icon>
+            开始收银 <el-icon class="el-icon--right"><ArrowRight /></el-icon>
           </el-button>
         </div>
       </div>
     </div>
 
-    <!-- 阶段三：结算成功 -->
+    <!-- ========= 阶段3：结算成功 ========= -->
     <div v-else-if="isFinished" class="result-box">
       <el-result icon="success" title="下单成功" sub-title="请核对订单信息">
         <template #extra>
           <div class="receipt-card">
-            <div class="receipt-header">
-              <h3>连锁超市购物小票</h3>
-              <p>No. {{ orderInfo.id }}</p>
-            </div>
+            <div class="receipt-header"><h3>连锁超市购物小票</h3><p>No. {{ orderInfo.id }}</p></div>
             <div class="receipt-info">
-              <div class="info-row">
-                <span>会员ID：</span>
-                <span>{{ orderInfo.userId || '散客' }}</span>
-              </div>
+              <div class="info-row" v-if="orderInfo.storeName"><span>门店：</span><span>{{ orderInfo.storeName }}</span></div>
+              <div class="info-row"><span>会员ID：</span><span>{{ orderInfo.userId || '散客' }}</span></div>
               <div class="info-row" v-if="orderInfo.userId">
-                <span>本次积分：</span>
-                <span style="color: #e6a23c; font-weight: bold;">+{{ orderInfo.points }}</span>
-              </div>
-              <div class="info-row" v-if="orderInfo.userId">
-                <span>当前积分：</span>
-                <span>{{ orderInfo.totalPoints }}</span>
+                <span>本次积分：</span><span style="color:#e6a23c;font-weight:bold">+{{ orderInfo.points }}</span>
               </div>
             </div>
             <el-divider border-style="dashed" />
@@ -56,877 +57,476 @@
               <li v-for="item in orderInfo.items" :key="item.id">
                 <div class="item-name">{{ item.name }}</div>
                 <div class="item-calc">
-                  <span>{{ item.quantity }} x ￥{{ (item.usePromotion ? (item.promotionPrice || item.price) : item.price).toFixed(2) }}</span>
-                  <span class="item-total">￥{{ ((item.usePromotion ? (item.promotionPrice || item.price) : item.price) * item.quantity).toFixed(2) }}</span>
+                  <span>{{ item.quantity }} x ¥{{ (item.usePromotion ? (item.promotionPrice||item.price) : item.price).toFixed(2) }}</span>
+                  <span class="item-total">¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</span>
                 </div>
               </li>
             </ul>
             <el-divider border-style="dashed" />
-            <div class="receipt-total">
-              <span>实付金额</span>
-              <span class="total-price">￥{{ orderInfo.totalAmount.toFixed(2) }}</span>
-            </div>
+            <div class="receipt-total"><span>实付金额</span><span class="total-price">¥{{ orderInfo.totalAmount.toFixed(2) }}</span></div>
           </div>
-          
           <div class="action-buttons">
             <el-button type="primary" size="large" @click="reset">开始下一单</el-button>
-            <el-button size="large" @click="printOrder" plain>打印小票</el-button>
           </div>
         </template>
       </el-result>
     </div>
 
-    <!-- 阶段二：收银台主界面 -->
+    <!-- ========= 阶段2：收银台主界面 ========= -->
     <div v-else class="pos-container">
-      <!-- 顶部状态栏 -->
       <div class="pos-header">
         <div class="member-info">
-          <el-avatar :size="40" style="background: #409EFF">
-            {{ userId ? '会员' : '散客' }}
-          </el-avatar>
+          <el-avatar :size="40" style="background:#409EFF">{{ userId ? '会员' : '散客' }}</el-avatar>
           <div class="info-text">
-            <div class="user-id">{{ userId ? 'ID: ' + userId : '普通顾客' }}</div>
+            <div class="user-id">{{ userId ? 'ID:' + userId : '普通顾客' }}</div>
             <div class="points" v-if="memberPoints !== null">积分: {{ memberPoints }}</div>
           </div>
         </div>
-        <el-button @click="exitCheckout" type="danger" plain size="small">退出收银</el-button>
+        <div class="header-actions">
+          <el-tag type="success" size="small">🟢 当班中 备用¥{{ shiftOpeningCash }}</el-tag>
+          <el-button @click="showCloseDialog = true" type="warning" size="small" plain>交班</el-button>
+          <el-button @click="exitCheckout" type="danger" size="small" plain>退出收银</el-button>
+        </div>
       </div>
 
       <div class="pos-layout">
-        <!-- 左侧：商品选择区 -->
+        <!-- 左侧：商品选择 -->
         <div class="pos-left">
           <el-card shadow="never" class="product-search-card">
-            <!-- 🤖 AI 智能识别区 -->
-            <div style="text-align: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-              <h3>AI 智能收银台 (YOLOv5)</h3>
-              <video ref="videoRef" autoplay playsinline width="640" height="480" style="border: 2px solid #409EFF; border-radius: 8px; background: #000; max-width: 100%;"></video>
-              <div style="margin-top: 15px;">
-                <el-button type="success" size="large" @click="captureAndRecognize" :loading="isRecognizing" style="width: 200px; font-size: 16px;">
-                  📸 拍照并 AI 识别
-                </el-button>
-              </div>
+            <!-- AI 识别区 -->
+            <div class="ai-section">
+              <h3>🤖 AI 智能收银 (YOLOv8)</h3>
+              <video ref="videoRef" autoplay playsinline class="ai-video"></video>
+              <el-button type="success" size="large" @click="captureAndRecognize" :loading="isRecognizing" class="ai-btn">
+                📸 拍照识别
+              </el-button>
             </div>
 
+            <!-- 搜索区 -->
             <div class="search-box">
-              <el-select 
-                v-model="currentProductId" 
-                filterable 
-                placeholder="🔍 扫描或搜索商品..." 
-                size="large"
-                style="width: 100%"
-                popper-class="product-popper"
-              >
-                <el-option 
-                  v-for="item in productList" 
-                  :key="item.id" 
-                  :label="item.name" 
-                  :value="item.id" 
-                  :disabled="!item.price || item.price <= 0"
-                >
+              <el-select v-model="currentProductId" filterable placeholder="🔍 扫码或搜索商品..." size="large" style="flex:1" popper-class="product-popper">
+                <el-option v-for="item in productList" :key="item.id" :label="item.name" :value="item.id" :disabled="!item.price||item.price<=0">
                   <div class="product-option">
                     <span class="opt-name">{{ item.name }}</span>
-                    <span v-if="item.price > 0" class="opt-price">￥{{ item.price }}</span>
+                    <span v-if="item.price>0" class="opt-price">¥{{ item.price }}</span>
                     <el-tag v-else type="danger" size="small">未定价</el-tag>
                   </div>
                 </el-option>
               </el-select>
-              
-              <div class="input-group">
-                <el-input-number v-model="currentQty" :min="1" size="large" style="width: 120px" @keyup.enter="addToCart" />
-                <el-button type="primary" size="large" @click="addToCart" :disabled="!currentProductId">
-                  <el-icon><ShoppingCart /></el-icon> 加入
-                </el-button>
-              </div>
+              <el-input-number v-model="currentQty" :min="1" size="large" style="width:100px" @keyup.enter="addToCart" />
+              <el-button type="primary" size="large" @click="addToCart" :disabled="!currentProductId"><el-icon><ShoppingCart /></el-icon> 加入</el-button>
             </div>
-            
-            <!-- 快捷商品展示区 (可选) -->
+
+            <!-- 热门商品（按品类取首条，统一高度） -->
             <div class="quick-products">
-              <div class="section-title">热门商品</div>
-              <div class="product-grid">
-                <div 
-                  v-for="item in productList.slice(0, 6)" 
-                  :key="item.id" 
-                  class="product-card"
-                  @click="currentProductId = item.id"
-                >
-                  <div class="p-name">{{ item.name }}</div>
-                  <div class="p-price">￥{{ item.price }}</div>
+              <div class="section-title">🔥 热门商品</div>
+              <div class="product-strip">
+                <div v-for="item in hotProducts" :key="item.id" class="hot-card" @click="quickAdd(item)">
+                  <div class="hot-name">{{ item.name }}</div>
+                  <el-tag size="small" type="info">{{ item.category }}</el-tag>
+                  <div class="hot-price">¥{{ item.price.toFixed(2) }}</div>
                 </div>
               </div>
             </div>
           </el-card>
         </div>
 
-        <!-- 右侧：购物车清单 -->
+        <!-- 右侧：购物车 -->
         <div class="pos-right">
           <div class="cart-panel">
-            <div class="cart-header">
-              <span>购物车清单</span>
-              <el-tag type="info" round>{{ cart.length }} 件商品</el-tag>
-            </div>
-            
+            <div class="cart-header"><span>购物车</span><el-tag type="info" round>{{ cart.length }} 件</el-tag></div>
             <div class="cart-list">
-              <el-empty v-if="cart.length === 0" description="暂无商品" :image-size="100"></el-empty>
-              
+              <el-empty v-if="cart.length===0" description="暂无商品" :image-size="80"></el-empty>
               <div v-else class="cart-item" v-for="(item, index) in cart" :key="index">
                 <div class="item-main">
                   <div class="item-title">{{ item.name }}</div>
-                  <div class="item-tags">
-                    <el-tag v-if="item.usePromotion" type="danger" size="small" effect="plain">促销</el-tag>
-                  </div>
+                  <el-tag v-if="item.usePromotion" type="danger" size="small" effect="plain">促销</el-tag>
                 </div>
-                
                 <div class="item-actions">
                   <div class="price-calc">
                     <div class="unit-price">
-                      <el-radio-group v-if="item.promotionPrice && item.promotionPrice < item.price" v-model="item.usePromotion" size="small">
-                        <el-radio-button :label="false">原￥{{ item.price }}</el-radio-button>
-                        <el-radio-button :label="true">促￥{{ item.promotionPrice }}</el-radio-button>
+                      <el-radio-group v-if="item.promotionPrice && item.promotionPrice<item.price" v-model="item.usePromotion" size="small">
+                        <el-radio-button :label="false">原¥{{ item.price }}</el-radio-button>
+                        <el-radio-button :label="true">促¥{{ item.promotionPrice }}</el-radio-button>
                       </el-radio-group>
-                      <span v-else>￥{{ item.price }}</span>
+                      <span v-else>¥{{ item.price }}</span>
                     </div>
                     <div class="qty">x {{ item.quantity }}</div>
                   </div>
-                  <div class="subtotal">￥{{ ((item.usePromotion ? (item.promotionPrice || item.price) : item.price) * item.quantity).toFixed(2) }}</div>
+                  <div class="subtotal">¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</div>
                   <el-button type="danger" icon="Delete" circle size="small" @click="removeFromCart(index)" plain></el-button>
                 </div>
               </div>
             </div>
-
-            <!-- 底部结算区 -->
             <div class="cart-footer">
-              <div class="points-row" v-if="memberPoints !== null && canUsePoints">
+              <div class="points-row" v-if="memberPoints!==null && canUsePoints">
                 <el-checkbox v-model="usePoints" border class="points-check">
-                  <span class="check-label">积分抵扣</span>
-                  <span class="check-desc">-￥5.00 (消耗1000积分)</span>
+                  <span class="check-label">积分抵扣</span><span class="check-desc">-¥5.00 (消耗1000积分)</span>
                 </el-checkbox>
               </div>
-              
               <div class="total-row">
                 <span class="label">应付金额</span>
-                <span class="amount">￥{{ (usePoints ? totalAmount - 5 : totalAmount).toFixed(2) }}</span>
+                <span class="amount">¥{{ (usePoints ? totalAmount-5 : totalAmount).toFixed(2) }}</span>
               </div>
-              
-              <el-button type="success" class="checkout-btn" @click="submitOrder" :disabled="cart.length === 0">
-                立即结算
-              </el-button>
+              <el-button type="success" class="checkout-btn" @click="submitOrder" :disabled="cart.length===0">立即结算</el-button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- ========= 交班对账弹窗 ========= -->
+    <el-dialog v-model="showCloseDialog" title="🧾 交班对账" width="450px" :close-on-click-modal="false">
+      <div class="close-content" v-if="closeResult">
+        <el-result icon="success" title="交班完成" sub-title="请核对以下对账信息" />
+        <table class="close-table">
+          <tr><td>开班备用金</td><td>¥{{ closeResult.openingCash }}</td></tr>
+          <tr><td>系统现金收入</td><td>¥{{ closeResult.systemCash }}</td></tr>
+          <tr><td>系统在线支付</td><td>¥{{ closeResult.systemOnline }}</td></tr>
+          <tr><td>总订单数</td><td>{{ closeResult.totalOrders }} 笔</td></tr>
+          <tr class="highlight"><td>理论应有现金</td><td>¥{{ closeResult.theoryCash }}</td></tr>
+          <tr class="highlight"><td>实际清点现金</td><td>¥{{ closeResult.closingCash }}</td></tr>
+          <tr :class="Math.abs(closeResult.diff)>0.01 ? 'diff-red':'diff-ok'">
+            <td>差异</td><td>¥{{ closeResult.diff }}</td>
+          </tr>
+        </table>
+        <el-button type="primary" @click="finishShift" style="width:100%;margin-top:20px">确认退出登录</el-button>
+      </div>
+      <div v-else>
+        <p style="text-align:center;color:#606266;margin-bottom:20px">请清点收银机中的现金，输入实际金额</p>
+        <div class="shift-input"><span class="prefix">¥</span>
+          <input v-model="closingCash" type="number" step="0.01" min="0" placeholder="实际现金" @keyup.enter="doCloseShift" />
+        </div>
+        <el-button type="primary" @click="doCloseShift" :loading="shiftLoading" style="width:100%;margin-top:15px">确认交班</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { createOrder, getMemberPoints } from '@/api/order'
-import { getProductList, aiRecognizeProduct } from '@/api/product'
-import { getInventoryList } from '@/api/inventory'
+import { createOrder, getMemberPoints, openShift, closeShift, getCurrentShift } from '@/api/order'
+import { getProductList, getHotProducts, aiRecognizeProduct } from '@/api/product'
 import request from '@/utils/request'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
-import { User, ArrowRight, ShoppingCart, Delete } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { User, ArrowRight, ShoppingCart } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 
-// 状态管理
+const router = useRouter()
+
+// ===== 换班状态 =====
+const isShiftOpen = ref(false)
+const shiftOpeningCash = ref('0')
+const showCloseDialog = ref(false)
+const shiftLoading = ref(false)
+const openingCash = ref('500')
+const closingCash = ref('')
+const closeResult = ref(null)
+
+// ===== 收银状态 =====
 const isStarted = ref(false)
 const isFinished = ref(false)
 const userId = ref('')
-const memberPoints = ref(null) // 新增：存储查询到的会员积分
+const memberPoints = ref(null)
 const productList = ref([])
 const orderInfo = ref({})
 const storeId = Number(localStorage.getItem('storeId')) || 1
-
-// 购物车相关
 const currentProductId = ref('')
 const currentQty = ref(1)
 const cart = ref([])
-
-// --- AI 摄像头相关变量 ---
 const videoRef = ref(null)
 const isRecognizing = ref(false)
 
-// 1. 开启本地摄像头
-const startCamera = async () => {
-  try {
-    // 检查浏览器是否支持 mediaDevices
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      ElMessage.warning('您的浏览器不支持访问摄像头，或者当前不是 HTTPS 环境')
-      return
-    }
-    
-    // 获取所有媒体设备，查找是否有摄像头
-    const devices = await navigator.mediaDevices.enumerateDevices()
-    const videoDevices = devices.filter(device => device.kind === 'videoinput')
-    
-    if (videoDevices.length === 0) {
-      ElMessage.error('未检测到任何摄像头设备，请检查硬件连接！')
-      return
-    }
+// ===== 热门商品（API 按销量取 TOP10） =====
+const hotProducts = ref([])
 
-    // 请求摄像头权限 (放宽限制，允许任何可用的摄像头)
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: true // 不强制指定后置，直接使用默认的（通常是电脑自带的）
-    })
-    
-    if (videoRef.value) {
-      videoRef.value.srcObject = stream
+const fetchHotProducts = async () => {
+  try {
+    const res = await getHotProducts()
+    hotProducts.value = (res.data || []).map(p => ({
+      id: p.id, name: p.name, category: p.category,
+      price: p.price, promotionPrice: p.promotionPrice || p.promo_price
+    }))
+    if (hotProducts.value.length === 0) {
+      // 无销量时降级为首批有价格的商品
+      hotProducts.value = productList.value.filter(p => p.price > 0).slice(0, 10)
     }
-  } catch (error) {
-    console.error('摄像头错误:', error)
-    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-      ElMessage.error('您拒绝了摄像头权限，请在浏览器地址栏左侧重新授权！')
-    } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-      ElMessage.error('未检测到摄像头设备，请检查硬件！')
-    } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-      ElMessage.error('摄像头正被其他程序占用，请关闭其他使用摄像头的软件后重试！')
-    } else {
-      ElMessage.error('无法访问摄像头：' + error.message)
-    }
+  } catch (_) {
+    hotProducts.value = productList.value.filter(p => p.price > 0).slice(0, 10)
   }
 }
 
-// 2. 拍照并发送给后端 AI 识别
+// ===== 开班 =====
+const doOpenShift = async () => {
+  const val = parseFloat(openingCash.value)
+  if (!val || val < 0) { ElMessage.warning('请输入有效的备用金金额'); return }
+  shiftLoading.value = true
+  try {
+    const res = await openShift(val)
+    if (res.data.ok) {
+      isShiftOpen.value = true
+      shiftOpeningCash.value = val.toFixed(2)
+      ElMessage.success(res.data.msg)
+    } else {
+      ElMessage.error(res.data.msg)
+    }
+  } catch (e) {
+    ElMessage.error('开班失败，请检查服务')
+  }
+  shiftLoading.value = false
+}
+
+// ===== 交班 =====
+const doCloseShift = async () => {
+  const val = parseFloat(closingCash.value)
+  if (!val || val < 0) { ElMessage.warning('请输入实际现金金额'); return }
+  shiftLoading.value = true
+  try {
+    const res = await closeShift(val)
+    if (res.data.ok) {
+      closeResult.value = res.data
+    } else {
+      ElMessage.error(res.data.msg)
+    }
+  } catch (e) {
+    ElMessage.error('交班失败')
+  }
+  shiftLoading.value = false
+}
+
+const finishShift = () => {
+  showCloseDialog.value = false
+  closeResult.value = null
+  closingCash.value = ''
+  localStorage.removeItem('token')
+  localStorage.removeItem('role')
+  localStorage.removeItem('storeId')
+  localStorage.removeItem('username')
+  router.push('/')
+}
+
+// ===== 快捷加购物车 =====
+const quickAdd = (item) => {
+  const exist = cart.value.find(c => c.id === item.id)
+  if (exist) { exist.quantity++ } else {
+    cart.value.push({ id: item.id, name: item.name, price: item.price, promotionPrice: item.promotionPrice||item.promoPrice, usePromotion: false, quantity: 1 })
+  }
+}
+
+// ===== 相机 + AI =====
+const startCamera = async () => {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) { ElMessage.warning('浏览器不支持摄像头'); return }
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+    if (videoRef.value) videoRef.value.srcObject = stream
+  } catch (e) {
+    ElMessage.error('无法访问摄像头: ' + (e.message||'权限被拒'))
+  }
+}
+
 const captureAndRecognize = async () => {
   if (!videoRef.value) return
   isRecognizing.value = true
-
-  // 截取视频画面画到 canvas 上
   const canvas = document.createElement('canvas')
-  canvas.width = videoRef.value.videoWidth
-  canvas.height = videoRef.value.videoHeight
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(videoRef.value, 0, 0, canvas.width, canvas.height)
-
-  // 转换成 base64
-  const base64Image = canvas.toDataURL('image/jpeg', 0.8)
-
+  canvas.width = videoRef.value.videoWidth; canvas.height = videoRef.value.videoHeight
+  canvas.getContext('2d').drawImage(videoRef.value, 0, 0)
+  const base64 = canvas.toDataURL('image/jpeg', 0.8)
   try {
-    const res = await aiRecognizeProduct(base64Image)
-    
-    // axios 返回的数据在 res.data 中，由于后端返回的是直接的数组，所以这里就是 res.data
-    const detectedKeywords = res.data || []
-    
-    if (detectedKeywords.length > 0) {
-      let count = 0;
-      
-      // 遍历 AI 识别出的关键词，去商品列表中模糊搜索
-      detectedKeywords.forEach(keyword => {
-        // 在前端的商品库中进行模糊匹配
-        const matchedProduct = productList.value.find(p => p.name.includes(keyword))
-        
-        if (matchedProduct) { 
-          // 检查是否已在购物车
-          const existingItem = cart.value.find(c => c.id === matchedProduct.id)
-          if (existingItem) {
-            existingItem.quantity = Number(existingItem.quantity) + 1
-          } else {
-            cart.value.push({
-              id: matchedProduct.id,
-              name: matchedProduct.name,
-              price: matchedProduct.price,
-              promotionPrice: matchedProduct.promotionPrice || matchedProduct.promoPrice,
-              usePromotion: false,
-              quantity: 1
-            })
-          }
-          count++
-        }
-      })
-      
-      if(count > 0){
-        ElMessage.success(`🎉 AI 识别到关键字，成功为您匹配并加入了 ${count} 件商品！`)
-      } else {
-        ElMessage.warning(`AI 识别到了【${detectedKeywords.join(',')}】，但您的商品库里没有卖这些商品`)
+    const res = await aiRecognizeProduct(base64)
+    const keys = res.data || []
+    let hit = 0
+    keys.forEach(k => {
+      const m = productList.value.find(p => p.name.includes(k))
+      if (m) {
+        const e = cart.value.find(c => c.id === m.id)
+        e ? e.quantity++ : cart.value.push({ id: m.id, name: m.name, price: m.price, promotionPrice: m.promotionPrice||m.promoPrice, usePromotion: false, quantity: 1 })
+        hit++
       }
-    } else {
-      ElMessage.warning('未能识别出商品，请调整位置后重试')
-    }
-  } catch (error) {
-    console.error('AI服务请求错误详情:', error)
-    if (error.response) {
-      // 服务器返回了错误状态码
-      ElMessage.error(`AI 服务返回错误: ${error.response.status}`)
-    } else if (error.request) {
-      // 请求发出去了，但没收到响应 (通常是跨域、端口没开、服务没启)
-      ElMessage.error('无法连接到 AI 服务，请检查服务器 5000 端口是否开放，以及 Python 服务是否运行')
-    } else {
-      ElMessage.error('请求 AI 服务失败: ' + error.message)
-    }
-  } finally {
-    isRecognizing.value = false
+    })
+    ElMessage.success(hit ? `🎉 AI 识别并加入 ${hit} 件商品` : '未能匹配到商品')
+  } catch (e) {
+    ElMessage.error('AI 服务连接失败，请检查 5000 端口')
   }
+  isRecognizing.value = false
 }
 
-// 初始化加载商品库（模拟扫码枪数据库）
 onMounted(async () => {
-  // startCamera() // 将启动摄像头移到进入收银台之后
+  try {
+    const r = await getCurrentShift()
+    if (r.data?.hasShift) {
+      isShiftOpen.value = true
+      shiftOpeningCash.value = String(r.data.openingCash||0)
+    }
+  } catch (_) {}
+
   try {
     const res = await getProductList()
-    // 关键修复：确保即使返回的是对象，也能正确提取商品数组
-    let products = res.data || []
-    if (!Array.isArray(products) && res.data.list) {
-      products = res.data.list
-    }
-    
-    productList.value = products
+    productList.value = Array.isArray(res.data) ? res.data : (res.data?.list||[])
   } catch (e) {
-    console.error('加载商品库失败', e)
-    ElMessage.error('加载商品数据失败，请检查网络或刷新页面')
+    ElMessage.error('加载商品失败')
   }
+
+  fetchHotProducts()
 })
 
-// 进入收银模式
 const startCheckout = async () => {
   if (userId.value) {
     try {
-      // 不再发送0元订单，而是直接获取积分（或者直接假设用户有积分，为了不报错我们做个兼容）
-      // 如果后端还没有 getMemberPoints 接口，这里会走到 catch 块，至少不会生成假订单
-      const res = await getMemberPoints(Number(userId.value))
-      memberPoints.value = res.data !== undefined ? res.data : 0
-    } catch (e) {
-      console.error('获取积分失败或接口未实现', e)
-      // 如果接口没实现，给个默认值不影响收银流程
-      memberPoints.value = 0 
-    }
-  } else {
-    memberPoints.value = null
-  }
+      const r = await getMemberPoints(Number(userId.value))
+      memberPoints.value = r.data ?? 0
+    } catch (_) { memberPoints.value = 0 }
+  } else { memberPoints.value = null }
   isStarted.value = true
-  
-  // 延迟一小段时间，确保 videoRef 元素已经渲染出来
-  setTimeout(() => {
-    startCamera()
-  }, 500)
+  setTimeout(() => startCamera(), 500)
 }
 
-// 退出收银模式
 const exitCheckout = () => {
   isStarted.value = false
-  if (videoRef.value && videoRef.value.srcObject) {
-    videoRef.value.srcObject.getTracks().forEach(track => track.stop())
+  if (videoRef.value?.srcObject) {
+    videoRef.value.srcObject.getTracks().forEach(t => t.stop())
     videoRef.value.srcObject = null
   }
 }
 
-// 添加到购物车
 const addToCart = () => {
-  if (!currentProductId.value) {
-    ElMessage.warning('请选择商品')
-    return
-  }
-  if (currentQty.value <= 0) {
-    ElMessage.warning('数量必须大于0')
-    return
-  }
-
-  // 查找商品信息
-  const product = productList.value.find(p => p.id === currentProductId.value)
-  if (!product) return
-
-  // 检查是否已在购物车
-  const existingItem = cart.value.find(item => item.id === product.id)
-  if (existingItem) {
-    existingItem.quantity = Number(existingItem.quantity) + Number(currentQty.value)
-  } else {
-    cart.value.push({
-      id: product.id,
-      name: product.name,
-      price: product.price, 
-      promotionPrice: product.promotionPrice || product.promoPrice, // 兼容字段
-      usePromotion: false, // 默认不使用促销价（使用原价）
-      quantity: Number(currentQty.value)
-    })
-  }
-  
-  // 重置输入
-  currentProductId.value = ''
-  currentQty.value = 1
+  if (!currentProductId.value) { ElMessage.warning('请选择商品'); return }
+  const p = productList.value.find(x => x.id === currentProductId.value)
+  if (!p) return
+  const e = cart.value.find(x => x.id === p.id)
+  e ? e.quantity += Number(currentQty.value) : cart.value.push({ id: p.id, name: p.name, price: p.price, promotionPrice: p.promotionPrice||p.promoPrice, usePromotion: false, quantity: Number(currentQty.value) })
+  currentProductId.value = ''; currentQty.value = 1
 }
 
-// 移除商品
-const removeFromCart = (index) => {
-  cart.value.splice(index, 1)
-}
-
-// 计算总价
-const totalAmount = computed(() => {
-  return cart.value.reduce((sum, item) => sum + (item.usePromotion ? (item.promotionPrice || item.price) : item.price) * item.quantity, 0)
-})
-
-// 积分抵扣相关
+const removeFromCart = (i) => cart.value.splice(i, 1)
+const totalAmount = computed(() => cart.value.reduce((s, x) => s + (x.usePromotion ? (x.promotionPrice||x.price) : x.price) * x.quantity, 0))
 const usePoints = ref(false)
-const canUsePoints = computed(() => {
-  // 条件：有会员积分 + 积分>=1000 + 订单金额>5
-  // 注意：memberPoints.value 可能是字符串，需要转数字比较
-  const points = Number(memberPoints.value || 0)
-  return memberPoints.value !== null && points >= 1000 && totalAmount.value > 5
-})
+const canUsePoints = computed(() => memberPoints.value !== null && Number(memberPoints.value||0) >= 1000 && totalAmount.value > 5)
 
-// 提交订单
 const submitOrder = async () => {
-  if (cart.value.length === 0) {
-    ElMessage.warning('购物车是空的')
-    return
-  }
-
+  if (cart.value.length === 0) { ElMessage.warning('购物车是空的'); return }
   try {
     const payload = {
-      items: cart.value.map(item => ({
-        productId: Number(item.id),
-        quantity: Number(item.quantity),
-        // [安全警告] 前端传递价格仅作为参考，后端必须忽略此字段并从数据库重新查询当前价格！
-        // 防止恶意用户通过抓包工具篡改价格
-        price: Number(item.usePromotion ? (item.promotionPrice || item.price) : item.price) 
-      })),
-      cashierAccount: localStorage.getItem('username') // 加入收银员账号字段
+      items: cart.value.map(x => ({ productId: Number(x.id), quantity: Number(x.quantity), price: Number(x.usePromotion ? (x.promotionPrice||x.price) : x.price) })),
+      cashierAccount: localStorage.getItem('username')
     }
-    
-    // 仅当输入了有效的会员ID时才传递 memberId，并确保转为数字
-    if (userId.value && !isNaN(userId.value) && Number(userId.value) > 0) {
-      payload.memberId = Number(userId.value)
-    }
-
-    // 积分抵扣逻辑
-    if (usePoints.value && canUsePoints.value) {
-      payload.usePoints = true // 告诉后端使用了积分
-      // 注意：这里前端只是标记，具体扣积分和减金额逻辑应由后端处理
-      // 但为了前端显示正确，我们这里也做一下临时计算
-    }
-
+    if (userId.value && Number(userId.value) > 0) payload.memberId = Number(userId.value)
+    if (usePoints.value && canUsePoints.value) payload.usePoints = true
     const res = await createOrder(payload)
-    
-    // 记录订单信息
-    const total = usePoints.value ? totalAmount.value - 5 : totalAmount.value
-    orderInfo.value = {
-      id: res.data?.orderId || 'ORD-' + Date.now(), 
-      userId: userId.value,
-      items: [...cart.value],
-      totalAmount: total,
-      // 使用后端返回的积分数据
-      points: res.data?.points || 0, 
-      totalPoints: res.data?.totalPoints || 0
-    }
-    
-    ElMessage.success('下单成功！')
-    isFinished.value = true // 进入结果页
-  } catch (e) {
-    // 错误已由拦截器处理
-  }
+    const t = usePoints.value ? totalAmount.value - 5 : totalAmount.value
+    orderInfo.value = { id: res.data?.orderId||'ORD-'+Date.now(), userId: userId.value, items: [...cart.value], totalAmount: t, points: res.data?.points||0, totalPoints: res.data?.totalPoints||0, storeName: res.data?.storeName||'' }
+    isFinished.value = true
+  } catch (_) {}
 }
 
-// 重置并开始下一单
-const reset = () => {
-  cart.value = []
-  userId.value = ''
-  orderInfo.value = {}
-  isStarted.value = false
-  isFinished.value = false
-}
-
-// 打印小票（模拟）
-const printOrder = () => {
-  ElMessage.success('正在发送到打印机...')
-}
+const reset = () => { cart.value = []; userId.value = ''; orderInfo.value = {}; isStarted.value = false; isFinished.value = false }
 
 onBeforeUnmount(() => {
-  if (videoRef.value && videoRef.value.srcObject) {
-    videoRef.value.srcObject.getTracks().forEach(track => track.stop())
-  }
+  if (videoRef.value?.srcObject) videoRef.value.srcObject.getTracks().forEach(t => t.stop())
 })
 </script>
 
 <style scoped>
-.order-page {
-  /* padding: 20px; */
-  height: 100%;
-}
+.order-page { height:100% }
 
-/* 欢迎页样式 */
-.welcome-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 80vh;
-}
+/* 开班页 */
+.shift-box { display:flex;justify-content:center;align-items:center;height:80vh }
+.shift-card { text-align:center;background:#fff;padding:50px 60px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);max-width:450px;width:100% }
+.shift-icon { font-size:56px;margin-bottom:16px }
+.shift-card h2 { color:#303133;margin-bottom:8px }
+.shift-card p { color:#909399;margin-bottom:24px }
+.shift-input { display:flex;align-items:center;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;padding:12px 16px;margin-bottom:16px }
+.shift-input .prefix { font-size:22px;color:#67c23a;font-weight:bold;margin-right:8px }
+.shift-input input { flex:1;border:none;outline:none;background:transparent;font-size:28px;color:#303133;width:100% }
+.shift-btn { width:100%;height:48px;font-size:17px;font-weight:600;border-radius:8px }
+.hint { font-size:12px;color:#c0c4cc;margin-top:12px }
 
-.welcome-card {
-  width: 500px;
-  padding: 60px;
-  text-align: center;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-}
+/* 欢迎页班次条 */
+.shift-bar { display:flex;align-items:center;gap:12px;background:#f0f9eb;padding:10px 16px;border-radius:8px;margin-bottom:24px }
 
-.welcome-icon {
-  font-size: 60px;
-  margin-bottom: 20px;
-}
+/* 收银台 */
+.pos-container { display:flex;flex-direction:column;height:calc(100vh - 100px);gap:16px }
+.pos-header { display:flex;justify-content:space-between;align-items:center;background:#fff;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04) }
+.member-info { display:flex;align-items:center;gap:12px }
+.header-actions { display:flex;align-items:center;gap:8px }
+.pos-layout { display:flex;gap:16px;flex:1;overflow:hidden }
+.pos-left { flex:1;display:flex;flex-direction:column }
+.product-search-card { height:100%;display:flex;flex-direction:column }
+.ai-section { text-align:center;background:#f8f9fa;padding:12px;border-radius:8px;margin-bottom:12px }
+.ai-section h3 { font-size:15px;margin:0 0 8px;color:#303133 }
+.ai-video { width:100%;max-width:280px;border:3px solid #333;border-radius:8px;background:#222;display:block;margin:0 auto }
+.ai-btn { margin-top:8px;display:block;margin-left:auto;margin-right:auto }
+.search-box { display:flex;gap:10px;margin-bottom:16px }
+.quick-products { flex:1;overflow-y:auto }
+.product-strip { display:grid;grid-template-columns:repeat(5, 1fr);gap:10px }
+.hot-card { background:#fff;border:1px solid #ebeef5;border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;text-align:center }
+.hot-card:hover { border-color:#67c23a;transform:translateY(-2px);box-shadow:0 4px 12px rgba(103,194,58,.12) }
+.hot-emoji { font-size:28px;margin-bottom:4px }
+.hot-name { font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px }
+.hot-price { color:#f56c6c;font-weight:bold;font-size:15px;margin-bottom:4px }
 
-.welcome-card h2 {
-  color: #303133;
-  margin-bottom: 10px;
-}
+.pos-right { width:380px;display:flex;flex-direction:column }
+.cart-panel { background:#fff;border-radius:8px;display:flex;flex-direction:column;height:100%;box-shadow:0 4px 12px rgba(0,0,0,.05) }
+.cart-header { padding:16px 20px;border-bottom:1px solid #ebeef5;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:16px }
+.cart-list { flex:1;overflow-y:auto;padding:10px }
+.cart-item { background:#fcfcfc;border:1px solid #ebeef5;border-radius:6px;padding:12px;margin-bottom:8px }
+.item-main { display:flex;justify-content:space-between;margin-bottom:6px }
+.item-title { font-weight:500 }
+.item-actions { display:flex;justify-content:space-between;align-items:center }
+.price-calc { display:flex;align-items:center;gap:8px;font-size:12px;color:#909399 }
+.subtotal { font-weight:bold;color:#f56c6c;font-size:15px }
+.cart-footer { padding:16px 20px;background:#fff;border-top:1px solid #ebeef5 }
+.points-row { margin-bottom:12px;padding:8px;background:#fdf6ec;border-radius:4px }
+.check-label { font-weight:bold;color:#e6a23c }
+.check-desc { font-size:12px;color:#909399;margin-left:5px }
+.total-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px }
+.total-row .label { font-size:16px;color:#606266 }
+.total-row .amount { font-size:28px;font-weight:bold;color:#f56c6c }
+.checkout-btn { width:100%;height:50px;font-size:18px;font-weight:bold;border-radius:25px }
 
-.welcome-card p {
-  color: #909399;
-  margin-bottom: 40px;
-}
+/* 交班对账 */
+.close-table { width:100%;border-collapse:collapse;margin-top:12px }
+.close-table td { padding:8px 12px;border-bottom:1px solid #ebeef5 }
+.close-table td:first-child { color:#909399 }
+.close-table td:last-child { text-align:right;font-weight:bold }
+.close-table .highlight td { font-size:18px;color:#303133 }
+.diff-red td { color:#f56c6c }
+.diff-ok td { color:#67c23a }
 
-.input-area {
-  display: flex;
-  gap: 10px;
-}
+/* 复用样式 */
+.product-option { display:flex;justify-content:space-between;width:100% }
+.opt-price { color:#f56c6c }
+.result-box { display:flex;justify-content:center;padding-top:40px }
+.receipt-card { width:400px;background:#fff;padding:24px;border:1px solid #ebeef5;box-shadow:0 4px 12px rgba(0,0,0,.05);margin-bottom:20px }
+.receipt-header { text-align:center;margin-bottom:16px }
+.receipt-header h3 { margin:0 0 4px }
+.receipt-info { font-size:14px;color:#606266;margin-bottom:16px }
+.info-row { display:flex;justify-content:space-between;margin-bottom:4px }
+.receipt-items { list-style:none;padding:0;margin:16px 0 }
+.receipt-items li { margin-bottom:8px }
+.item-name { font-weight:500;margin-bottom:2px }
+.item-calc { display:flex;justify-content:space-between;font-size:13px;color:#909399 }
+.item-total { color:#303133 }
+.receipt-total { display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:18px;font-weight:bold }
+.total-price { color:#f56c6c;font-size:22px }
+.action-buttons { text-align:center }
 
-/* 收银台主界面 */
-.pos-container {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 100px); /* 减去顶部导航和padding */
-  gap: 20px;
-}
+/* 欢迎页 */
+.welcome-box { display:flex;justify-content:center;align-items:center;height:80vh }
+.welcome-card { width:500px;padding:50px;text-align:center;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.05) }
+.welcome-icon { font-size:56px;margin-bottom:16px }
+.welcome-card h2 { color:#303133;margin-bottom:8px }
+.welcome-card p { color:#909399;margin-bottom:32px }
+.input-area { display:flex;gap:10px }
+.start-btn { flex-shrink:0 }
 
-.pos-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-}
-
-.member-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.info-text .user-id {
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.info-text .points {
-  font-size: 12px;
-  color: #e6a23c;
-}
-
-.pos-layout {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-  overflow: hidden;
-}
-
-.pos-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.product-search-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.search-box {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.input-group {
-  display: flex;
-  gap: 10px;
-}
-
-.section-title {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 15px;
-  font-weight: bold;
-}
-
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-}
-
-.product-card {
-  background: #f5f7fa;
-  padding: 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.product-card:hover {
-  background: #ecf5ff;
-  border-color: #409eff;
-  transform: translateY(-2px);
-}
-
-.p-name {
-  font-weight: bold;
-  margin-bottom: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.p-price {
-  color: #f56c6c;
-}
-
-.pos-right {
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-}
-
-.cart-panel {
-  background: white;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-}
-
-.cart-header {
-  padding: 20px;
-  border-bottom: 1px solid #ebeef5;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.cart-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.cart-item {
-  background: #fcfcfc;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 10px;
-}
-
-.item-main {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.item-title {
-  font-weight: 500;
-}
-
-.item-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price-calc {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #909399;
-}
-
-.subtotal {
-  font-weight: bold;
-  color: #f56c6c;
-  font-size: 16px;
-}
-
-.cart-footer {
-  padding: 20px;
-  background: #fff;
-  border-top: 1px solid #ebeef5;
-}
-
-.points-row {
-  margin-bottom: 15px;
-  padding: 10px;
-  background: #fdf6ec;
-  border-radius: 4px;
-}
-
-.check-label {
-  font-weight: bold;
-  color: #e6a23c;
-}
-
-.check-desc {
-  font-size: 12px;
-  color: #909399;
-  margin-left: 5px;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.total-row .label {
-  font-size: 16px;
-  color: #606266;
-}
-
-.total-row .amount {
-  font-size: 28px;
-  font-weight: bold;
-  color: #f56c6c;
-}
-
-.checkout-btn {
-  width: 100%;
-  height: 50px;
-  font-size: 18px;
-  font-weight: bold;
-  border-radius: 25px;
-}
-
-/* 下拉框自定义样式 */
-.product-option {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-}
-.opt-price {
-  color: #f56c6c;
-}
-
-/* 结算成功页 */
-.result-box {
-  display: flex;
-  justify-content: center;
-  padding-top: 50px;
-}
-
-.receipt-card {
-  width: 400px;
-  background: #fff;
-  padding: 30px;
-  border: 1px solid #ebeef5;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  margin-bottom: 30px;
-}
-
-.receipt-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.receipt-info {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 20px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.receipt-items {
-  list-style: none;
-  padding: 0;
-  margin: 20px 0;
-}
-
-.receipt-items li {
-  margin-bottom: 10px;
-}
-
-.item-name {
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-
-.item-calc {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #909399;
-}
-
-.item-total {
-  color: #303133;
-}
-
-.receipt-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.action-buttons {
-  text-align: center;
-}
-
-@media (max-width: 768px) {
-  /* 欢迎页适配 */
-  .welcome-card {
-    width: 90%;
-    padding: 40px 20px;
-  }
-  
-  .input-area {
-    flex-direction: column;
-  }
-  
-  .start-btn {
-    width: 100%;
-  }
-
-  /* 收银台布局适配 */
-  .pos-container {
-    height: auto;
-    overflow-y: visible;
-  }
-  
-  .pos-layout {
-    flex-direction: column;
-    overflow: visible;
-  }
-  
-  .pos-left {
-    flex: none;
-    width: 100%;
-  }
-  
-  .pos-right {
-    flex: none;
-    width: 100%;
-  }
-  
-  .cart-panel {
-    height: 500px; /* 移动端给个固定高度，或者自适应 */
-  }
-  
-  /* 结算结果页适配 */
-  .receipt-card {
-    width: 100%;
-    box-sizing: border-box;
-  }
+@media (max-width:768px) {
+  .pos-layout { flex-direction:column;overflow:visible }
+  .pos-right { width:100% }
+  .cart-panel { height:400px }
+  .welcome-card { width:90%;padding:30px 20px }
+  .input-area { flex-direction:column }
+  .start-btn { width:100% }
+  .product-strip { grid-template-columns:repeat(auto-fill, minmax(100px,1fr)) }
+  .shift-card { padding:30px 24px }
 }
 </style>

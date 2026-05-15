@@ -9,6 +9,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ProductService extends ServiceImpl<ProductMapper, Product> {
@@ -37,5 +38,10 @@ public class ProductService extends ServiceImpl<ProductMapper, Product> {
 
     @CacheEvict(value = {"productAll", "productStore"}, allEntries = true)
     public void evictProductCache() {
+    }
+
+    /** 热门商品：跨库查 product_sales 取销量TOP10 */
+    public List<Map<String, Object>> findHotProducts() {
+        return baseMapper.findHotProducts();
     }
 }

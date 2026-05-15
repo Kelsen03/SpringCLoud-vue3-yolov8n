@@ -29,6 +29,11 @@ export const updateProduct = (data) => {
 
 import axios from 'axios'
 
+/** 热门商品 TOP10（按销量） */
+export const getHotProducts = () => {
+  return request.get('/product/hot')
+}
+
 // AI 智能识别商品接口
 export const aiRecognizeProduct = (base64Image) => {
   // 修改为指向您阿里云服务器上的 Python AI 服务端口 (5000)

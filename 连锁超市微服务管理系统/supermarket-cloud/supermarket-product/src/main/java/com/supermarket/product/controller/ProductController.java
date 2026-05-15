@@ -80,6 +80,12 @@ public class ProductController {
         return resultList;
     }
 
+    /** 热门商品：按销量取 TOP10 */
+    @GetMapping("/hot")
+    public List<Map<String, Object>> hotProducts() {
+        return productService.findHotProducts();
+    }
+
     // 1️⃣ 新增商品（总部 / 门店共用）
     // 逻辑：
     // - 总部（HQ）：可以添加全局商品（isLocal=0），所有门店可见

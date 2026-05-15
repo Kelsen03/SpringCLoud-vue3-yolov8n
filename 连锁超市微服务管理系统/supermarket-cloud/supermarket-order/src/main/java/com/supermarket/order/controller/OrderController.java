@@ -173,6 +173,9 @@ public class OrderController {
         }
         OrderResponse resp = new OrderResponse(order.getId(), points, totalPoints);
         resp.setOrderNo(order.getOrderNo());
+        if (order.getStoreId() != null) {
+            resp.setStoreName(orderMapper.getStoreName(order.getStoreId()));
+        }
         return resp;
     }
 
@@ -238,8 +241,13 @@ public class OrderController {
         response.setCreateTime(order.getCreateTime());
         response.setTotalPrice(order.getTotalPrice());
         response.setMemberId(order.getMemberId());
-        response.setCreateBy(order.getCreateBy()); // 加上收银员账号
-        
-        return response; 
+        response.setCreateBy(order.getCreateBy());
+
+        // 跨库查门店名称
+        if (order.getStoreId() != null) {
+            response.setStoreName(orderMapper.getStoreName(order.getStoreId()));
+        }
+
+        return response;
     }
 }

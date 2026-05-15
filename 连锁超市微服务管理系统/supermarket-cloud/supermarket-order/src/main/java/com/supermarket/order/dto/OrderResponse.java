@@ -24,6 +24,7 @@ public class OrderResponse {
     private BigDecimal totalPrice;
     private Long memberId;
     private String createBy;
+    private String storeName;
 
     public OrderResponse(Long orderId, Integer points, Integer totalPoints) {
         this.orderId = orderId;

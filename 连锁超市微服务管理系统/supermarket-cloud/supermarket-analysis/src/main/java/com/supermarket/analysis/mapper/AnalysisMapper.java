@@ -36,9 +36,11 @@ public interface AnalysisMapper {
 
     @Select("SELECT o.store_id, " +
             "CASE " +
-            "  WHEN p.category IN ('饮料','饮用水','乳制品') THEN '饮品' " +
-            "  WHEN p.category IN ('方便面','熟食','生鲜') THEN '食品' " +
-            "  WHEN p.category IN ('纸品','个护') THEN '生活用品' " +
+            "  WHEN p.category = '饮品' THEN '饮品' " +
+            "  WHEN p.category = '乳制品' THEN '乳制品' " +
+            "  WHEN p.category IN ('零食','方便食品','冷冻食品','谷物早餐','烘焙面点','主食粮谷','罐头食品','干货特产') THEN '食品' " +
+            "  WHEN p.category IN ('纸品个护','家居清洁','日杂百货') THEN '日用品' " +
+            "  WHEN p.category = '调味品' THEN '调味品' " +
             "  ELSE '其他' " +
             "END AS category, " +
             "SUM(oi.quantity) AS sales " +

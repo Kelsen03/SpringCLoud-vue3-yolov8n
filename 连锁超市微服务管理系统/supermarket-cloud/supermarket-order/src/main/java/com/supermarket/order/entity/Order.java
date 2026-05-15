@@ -25,4 +25,7 @@ public class Order {
 
     @TableField(exist = false)
     private String cashierAccount;
+
+    @TableField(exist = false)
+    private String storeName;
 }
