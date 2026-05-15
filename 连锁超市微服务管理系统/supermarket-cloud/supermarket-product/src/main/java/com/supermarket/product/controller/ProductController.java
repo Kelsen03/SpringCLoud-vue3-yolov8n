@@ -113,22 +113,21 @@ public class ProductController {
         }
 
         productService.save(product);
+        productService.evictProductCache();
         return "ok";
     }
 
     // 2️⃣ 修改商品（总部专属）
-    // 逻辑：只有总部有权限修改商品信息（如统一调价）
     @PutMapping("/update")
     public String update(@RequestBody Product product,
                          @RequestHeader("Authorization") String token) {
 
         Claims claims = JwtUtil.parseToken(token);
-        // 权限校验：非HQ直接拒绝
         if (!"HQ".equals(claims.get("role"))) {
             return "no permission";
         }
 
-        productService.updateById(product);
+        productService.updateAndEvictCache(product);
         return "ok";
     }
 

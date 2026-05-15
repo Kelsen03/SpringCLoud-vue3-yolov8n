@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.supermarket.product.entity.Product;
 import com.supermarket.product.mapper.ProductMapper;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -27,5 +28,14 @@ public class ProductService extends ServiceImpl<ProductMapper, Product> {
     @Cacheable(value = "productAll", key = "'all'")
     public List<Product> findAll() {
         return list();
+    }
+
+    @CacheEvict(value = {"productAll", "productStore"}, allEntries = true)
+    public void updateAndEvictCache(Product product) {
+        updateById(product);
+    }
+
+    @CacheEvict(value = {"productAll", "productStore"}, allEntries = true)
+    public void evictProductCache() {
     }
 }

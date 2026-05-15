@@ -99,49 +99,7 @@ const storeId = Number(localStorage.getItem('storeId')) || 1
 const load = async () => {
   try {
     const res = await getProductList()
-    let products = res.data || []
-
-    // 只有HQ才需要检查所有门店的库存，找出未定价的新商品
-    // 门店用户只能看到已存在的商品(由HQ统一定价)
-    if (role === 'HQ') {
-      try {
-        // 遍历所有门店(1,2,3)的库存，查找遗漏的商品
-        const storeIds = [1, 2, 3]
-        const allInventoryItems = []
-        
-        for (const sid of storeIds) {
-          try {
-            const invRes = await getInventoryList(sid)
-            if (invRes.data) {
-              allInventoryItems.push(...invRes.data)
-            }
-          } catch (err) {
-            console.warn(`加载门店${sid}库存失败`, err)
-          }
-        }
-        
-        // 使用 String 类型进行比较，防止 ID 类型不一致导致重复添加
-        const productIds = new Set(products.map(p => String(p.id)))
-        
-        allInventoryItems.forEach(item => {
-          if (item.productId && !productIds.has(String(item.productId))) {
-            // 如果库存中有，但商品列表中没有，手动添加供HQ定价
-            products.push({
-              id: item.productId,
-              name: item.productName || '未命名商品',
-              price: 0, // 默认为0，等待HQ设置
-              promoPrice: null,
-              isNew: true // 标记为新发现的库存商品
-            })
-            productIds.add(String(item.productId))
-          }
-        })
-      } catch (invError) {
-        console.warn('获取库存补充数据失败', invError)
-      }
-    }
-
-    list.value = products
+    list.value = res.data || []
   } catch (e) {
     console.error('加载商品列表失败', e)
     ElMessage.error('加载失败')
@@ -151,9 +109,8 @@ const load = async () => {
 const save = async (row) => {
   try {
     await updateProduct(row)
+    row.isNew = false
     ElMessage.success('价格修改成功')
-    // 如果是新商品，保存后它应该就真正存在了，重新加载列表
-    load()
   } catch (e) {
     ElMessage.error('修改失败')
   }
