@@ -49,7 +49,14 @@
 |------|------|
 | Flask | RESTful API |
 | YOLOv8n | 轻量目标检测（~3.2M 参数） |
-| OpenCV | HSV 色彩空间分析（内存 <200MB） |
+| OpenCV | HSV 色彩空间分析 — 7 种饮料颜色区分 + 25+ COCO 类别映射（内存 <200MB） |
+
+### Systemd 服务
+
+| 服务 | 说明 |
+|------|------|
+| `supermarket-ai.service` | AI 识别开机自启，崩溃自动重启 |
+| `supermarket-*.service` | 6 个微服务 systemd 守护 |
 
 ---
 
@@ -68,7 +75,8 @@
 
 ### 智能收银（POS）
 - **换班系统**：开班输入备用金 → 收银 → 交班自动对账（理论现金 vs 实际现金）
-- **AI 视觉识别**：YOLOv8 定位 + HSV 颜色分析区分饮料
+- **AI 视觉识别**：YOLOv8 定位 + HSV 颜色分析（可乐/雪碧/芬达/百事/维他柠檬茶/东方树叶/农夫山泉），25+ 种食品日用品映射
+- **条形码扫描**：扫码枪键盘输入自动识别，输入框手动查找
 - **热门商品**：按 `product_sales` 累计销量 TOP10，点即加入购物车
 - **会员积分**：1000 积分抵 5 元
 
@@ -115,8 +123,12 @@ npm run build     # 生产 → dist/
 ### 3. AI 服务
 ```bash
 pip install ultralytics flask flask-cors opencv-python
-cd 前端
-python ai_server.py   # 端口 5000
+# 手动运行
+cd 前端 && python ai_server.py   # 端口 5000
+
+# 或配置 systemd 开机自启（推荐）
+sudo vim /etc/systemd/system/supermarket-ai.service
+sudo systemctl enable --now supermarket-ai
 ```
 
 ### 4. 种子数据
@@ -156,6 +168,22 @@ mysql -u root -p supermarket_product < product_import.sql
 ```
 
 ---
+
+## 📋 更新日志
+
+### v2.0 (2026-05-16)
+- AI：25+ COCO 类别映射，7 种饮料颜色识别，阈值降至 0.35
+- 条形码：`/product/barcode/{code}` 接口 + 前端输入框 + 扫码枪键盘监听
+- 收银台：pos-mode 去全局卡片包裹，头栏精简与购物车像素对齐
+- 字体：全页面放大适配答辩截图（普通顾客 16px 基准）
+- 布局：摄像头回归左侧面板自适应宽度，热门商品 18px 大字体
+
+### v1.0 (2026-05-15)
+- 换班系统：shift_record 表 + 开班/交班对账
+- BCrypt + Spring Security + Redis 缓存
+- @Scheduled 定时数据聚合
+- 商品数据：432 条 17 品类 + 条形码字段
+- 订单流水号 + 门店信息 + 小票展示
 
 ## 📝 许可证
 
