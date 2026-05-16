@@ -47,6 +47,19 @@ const isActive = (path) => {
       </div>
 
       <div class="user-info">
+        <!-- 仅为收银员角色在顶部显示收银台菜单 -->
+        <el-button 
+          v-if="role === 'CASHIER'"
+          class="top-menu-btn"
+          type="primary"
+          plain
+          round
+          @click="go('/pos')"
+        >
+          <el-icon style="margin-right: 4px;"><Money /></el-icon>
+          收银台
+        </el-button>
+
         <el-tag 
           class="role-tag"
           effect="dark" 
@@ -73,8 +86,8 @@ const isActive = (path) => {
 
     <div class="main-container"> 
       <!-- 左侧侧边栏 (Modern Sidebar) --> 
-      <!-- 仅在已登录且非登录/注册页显示侧边栏 -->
-      <div v-if="role && route.path !== '/' && route.path !== '/register'" class="sidebar glass-sidebar"> 
+      <!-- 仅在已登录、非登录/注册页、且角色不是收银员时显示侧边栏 -->
+      <div v-if="role && route.path !== '/' && route.path !== '/register' && role !== 'CASHIER'" class="sidebar glass-sidebar"> 
         <div class="menu-list">
           <!-- 总部菜单 --> 
           <template v-if="role === 'HQ'"> 
@@ -127,16 +140,6 @@ const isActive = (path) => {
               <span>本地商品</span>
             </div>
           </template> 
-
-          <!-- 收银员菜单 -->
-          <template v-else-if="role === 'CASHIER'">
-            <div class="menu-group-title">收银终端</div>
-            
-            <div class="menu-item" :class="{ active: isActive('/pos') }" @click="go('/pos')">
-              <el-icon><Money /></el-icon>
-              <span>收银台</span>
-            </div>
-          </template>
         </div>
 
         <!-- 底部系统信息 -->
@@ -147,8 +150,8 @@ const isActive = (path) => {
       </div> 
 
       <!-- 页面展示 (Content Area) --> 
-      <div class="content-area" :class="{ 'login-mode': route.path === '/' || route.path === '/register' }"> 
-        <div class="content-wrapper" :class="{ 'login-mode': route.path === '/' || route.path === '/register' }">
+      <div class="content-area" :class="{ 'login-mode': route.path === '/' || route.path === '/register', 'pos-mode': route.path === '/pos' }">
+        <div class="content-wrapper" :class="{ 'login-mode': route.path === '/' || route.path === '/register', 'pos-mode': route.path === '/pos' }">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />
@@ -265,6 +268,11 @@ body, html {
   gap: 15px;
 }
 
+.top-menu-btn {
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+}
+
 .role-tag {
   font-weight: 500 !important;
   border-radius: 20px;
@@ -378,7 +386,8 @@ body, html {
   background-color: transparent;
 }
 
-.content-area.login-mode {
+.content-area.login-mode,
+.content-area.pos-mode {
   padding: 0;
   overflow: hidden;
 }
@@ -396,7 +405,8 @@ body, html {
   box-shadow: var(--glass-shadow);
 }
 
-.content-wrapper.login-mode {
+.content-wrapper.login-mode,
+.content-wrapper.pos-mode {
   padding: 0;
   background: transparent;
   box-shadow: none;

@@ -29,6 +29,11 @@ export const updateProduct = (data) => {
 
 import axios from 'axios'
 
+/** 条形码查商品 */
+export const getProductByBarcode = (barcode) => {
+  return request.get(`/product/barcode/${barcode}`)
+}
+
 /** 热门商品 TOP10（按销量） */
 export const getHotProducts = () => {
   return request.get('/product/hot')

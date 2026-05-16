@@ -7,153 +7,149 @@ import numpy as np
 from ultralytics import YOLO
 
 app = Flask(__name__)
-# 允许跨域请求
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-# ---------------------------------------------------------
-# 1. 加载 YOLO 模型 (放弃耗内存的 OCR，改用轻量级 OpenCV 色彩分析)
-# ---------------------------------------------------------
+# 1. 加载 YOLOv8n 模型（~3.2M 参数，内存 <200MB）
 try:
     print("正在加载 YOLO 模型...")
     model = YOLO('yolov8n.pt')
-    print("YOLO 模型加载成功！(内存占用 < 200MB)")
+    print("YOLO 模型加载成功")
 except Exception as e:
     print(f"模型加载失败: {e}")
     model = None
 
-# =========================================================
-# 定义一个轻量级的颜色分析函数
-# =========================================================
-def analyze_bottle_color(bottle_img):
-    """
-    将瓶子的图片转换到 HSV 颜色空间，统计红色、绿色、透明/白色的像素点比例，
-    从而判断是可口可乐(红)、雪碧(绿)还是农夫山泉(透明/红盖)。
-    """
-    # 转为 HSV 格式更容易判断颜色
-    hsv = cv2.cvtColor(bottle_img, cv2.COLOR_BGR2HSV)
-    
-    # 定义红色的范围 (HSV里红色分布在两头)
-    lower_red1 = np.array([0, 50, 50])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 50, 50])
-    upper_red2 = np.array([180, 255, 255])
-    
-    # 定义绿色的范围 (雪碧)
-    lower_green = np.array([35, 50, 50])
-    upper_green = np.array([85, 255, 255])
+# ============================================================
+# 2. COCO 超市商品映射（YOLO 80类 → 中文商品名）
+# ============================================================
+SUPERMARKET_MAP = {
+    # 水果饮品（必须与数据库 product_import.sql 中的商品名匹配）
+    "apple": "苹果", "orange": "橙",
+    "banana": "香蕉", "carrot": "胡萝卜",
+    # 烘焙
+    "cake": "蛋糕", "donut": "面包", "sandwich": "面包",
+    "pizza": "披萨", "hot dog": "热狗",
+    # 饮料(bottle单独颜色分析)
+    "bottle": None, "cup": "杯子",
+    "wine glass": "酒杯",
+    # 零食
+    "broccoli": "蔬菜",
+    # 日杂
+    "cell phone": "手机", "book": "书",
+    "backpack": "包", "umbrella": "伞",
+    "scissors": "剪刀", "clock": "钟",
+    "keyboard": "键盘", "mouse": "鼠标",
+    "toothbrush": "牙刷",
+    # 宠物(暂不映射到商品)
+    "cat": None, "dog": None, "bird": None,
+    "person": None,
+}
 
-    # 生成掩码 (Mask)，也就是把符合这些颜色的像素抠出来
-    mask_red1 = cv2.inRange(hsv, lower_red1, upper_red1)
-    mask_red2 = cv2.inRange(hsv, lower_red2, upper_red2)
-    mask_red = cv2.bitwise_or(mask_red1, mask_red2)
-    
-    mask_green = cv2.inRange(hsv, lower_green, upper_green)
-    
-    # 计算红绿像素的占比
-    total_pixels = bottle_img.shape[0] * bottle_img.shape[1]
-    red_ratio = cv2.countNonZero(mask_red) / total_pixels
-    green_ratio = cv2.countNonZero(mask_green) / total_pixels
-    
-    print(f"🎨 颜色分析: 红色占比={red_ratio:.2%}, 绿色占比={green_ratio:.2%}")
-    
-    # 简单的决策树逻辑
-    if red_ratio > 0.15:  # 如果红色面积超过 15%，认为是可口可乐
-        return "可口可乐 500ml"
-    elif green_ratio > 0.15: # 如果绿色面积超过 15%，认为是雪碧
-        return "雪碧 500ml"
-    else:
-        # 既不红也不绿，大概率是农夫山泉
-        return "农夫山泉 550ml"
+# ============================================================
+# 3. 饮料颜色分析扩展版（支持更多饮料）
+# ============================================================
+def analyze_bottle_color(bottle_img):
+    hsv = cv2.cvtColor(bottle_img, cv2.COLOR_BGR2HSV)
+    total = bottle_img.shape[0] * bottle_img.shape[1]
+
+    # 红色（可口可乐）
+    r1 = cv2.inRange(hsv, np.array([0, 50, 50]), np.array([10, 255, 255]))
+    r2 = cv2.inRange(hsv, np.array([170, 50, 50]), np.array([180, 255, 255]))
+    red_ratio = cv2.countNonZero(cv2.bitwise_or(r1, r2)) / total
+
+    # 绿色（雪碧）
+    g = cv2.inRange(hsv, np.array([35, 50, 50]), np.array([85, 255, 255]))
+    green_ratio = cv2.countNonZero(g) / total
+
+    # 橙色（芬达）
+    o = cv2.inRange(hsv, np.array([11, 50, 50]), np.array([25, 255, 255]))
+    orange_ratio = cv2.countNonZero(o) / total
+
+    # 黄色（维他柠檬茶/佳得乐）
+    y = cv2.inRange(hsv, np.array([26, 50, 50]), np.array([34, 255, 255]))
+    yellow_ratio = cv2.countNonZero(y) / total
+
+    # 蓝色（百事/百岁山）
+    b = cv2.inRange(hsv, np.array([100, 50, 50]), np.array([130, 255, 255]))
+    blue_ratio = cv2.countNonZero(b) / total
+
+    # 棕色（茶类：东方树叶/三得利乌龙茶）
+    br = cv2.inRange(hsv, np.array([10, 20, 20]), np.array([30, 200, 150]))
+    brown_ratio = cv2.countNonZero(br) / total
+
+    print(f"色彩分析: 红{red_ratio:.1%} 绿{green_ratio:.1%} 橙{orange_ratio:.1%} 黄{yellow_ratio:.1%} 蓝{blue_ratio:.1%} 棕{brown_ratio:.1%}")
+
+    # 决策树（按占比从高到低）
+    if red_ratio > 0.12:       return "可口可乐 500ml"
+    if green_ratio > 0.12:     return "雪碧 500ml"
+    if orange_ratio > 0.12:    return "芬达橙味 500ml"
+    if yellow_ratio > 0.10:    return "维他柠檬茶 250ml"
+    if blue_ratio > 0.12:      return "百事可乐 500ml"
+    if brown_ratio > 0.10:     return "东方树叶茉莉花茶 500ml"
+    return "农夫山泉 550ml"
+
 
 @app.route('/api/detect', methods=['POST', 'OPTIONS'])
 def detect_objects():
     if request.method == 'OPTIONS':
         return '', 200
-        
+
     data = request.get_json()
     if not data or 'image' not in data:
         return jsonify({"error": "No image provided"}), 400
 
-    base64_image = data['image']
-    
+    b64 = data['image']
+    if "," in b64:
+        b64 = b64.split(",")[1]
+
     try:
-        # ---------------------------------------------------------
-        # 2. 将前端传来的 Base64 字符串解码并转换为 OpenCV 图像格式 (numpy array)
-        # ---------------------------------------------------------
-        # 移除 base64 头部 (例如: data:image/jpeg;base64,)
-        if "," in base64_image:
-            base64_image = base64_image.split(",")[1]
-            
-        image_bytes = base64.b64decode(base64_image)
-        nparr = np.frombuffer(image_bytes, np.uint8)
+        img_bytes = base64.b64decode(b64)
+        nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
         if img is None:
-             return jsonify({"error": "Failed to decode image"}), 400
-             
+            return jsonify({"error": "Failed to decode image"}), 400
         if model is None:
-             return jsonify({"error": "AI Model not loaded"}), 500
+            return jsonify({"error": "AI Model not loaded"}), 500
 
-        # ---------------------------------------------------------
-        # 3. 使用 YOLO 进行真实推理 (Inference)
-        # ---------------------------------------------------------
-        print("开始进行 YOLO 识别推理...")
-        results = model.predict(source=img, conf=0.5, save=False) # conf=0.5 表示只保留置信度大于50%的结果
+        print("YOLO 推理中...")
+        results = model.predict(source=img, conf=0.35, save=False)
 
-        detected_keywords = []
-        
-        # ---------------------------------------------------------
-        # 4. 解析推理结果并引入 OCR (文字识别)
-        # ---------------------------------------------------------
-        
-        # 毕业答辩保留的后备映射
-        demo_mapping = {
-            "cell phone": "手机",
-            "apple": "苹果",
-            "banana": "香蕉"
-        }
+        detected = []
 
         for result in results:
-            boxes = result.boxes  
-            for box in boxes:
-                class_id = int(box.cls[0].item())
+            for box in result.boxes:
+                cls_id = int(box.cls[0].item())
                 conf = float(box.conf[0].item())
-                raw_class_name = model.names[class_id]
-                
-                # ==== 方案B：轻量级颜色分析法 (不占内存) ====
-                if raw_class_name == "bottle":
-                    # 1. 裁剪瓶子区域
+                raw = model.names[cls_id]
+
+                # 跳过无关类别
+                if raw == "person":
+                    continue
+
+                # bottle 走颜色分析
+                if raw == "bottle":
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    bottle_img = img[y1:y2, x1:x2]
-                    
-                    # 2. 调用 OpenCV 色彩分析函数判断具体是哪款饮料
-                    class_name = analyze_bottle_color(bottle_img)
+                    crop = img[y1:y2, x1:x2]
+                    if crop.size > 0:
+                        name = analyze_bottle_color(crop)
+                    else:
+                        continue
                 else:
-                    # 如果不是瓶子，就用普通的映射
-                    class_name = demo_mapping.get(raw_class_name, raw_class_name)
-                
-                # 将识别到的物体名称加入列表
-                if class_name not in detected_keywords:
-                    detected_keywords.append(class_name)
-                    print(f"-> 最终识别: {class_name} (YOLO置信度: {conf:.2f})")
+                    name = SUPERMARKET_MAP.get(raw)
+                    if name is None:
+                        continue  # 跳过不在映射中的
 
-        print(f"AI 识别完成！提取到的最终关键词：{detected_keywords}")
-        
-        # ---------------------------------------------------------
-        # 5. 企业级：数据飞轮 (主动学习/数据收集)
-        # 将低置信度的图片或者特定图片保存下来，用于未来二次训练
-        # ---------------------------------------------------------
-        # if len(detected_keywords) == 0 or (boxes and float(boxes[0].conf[0].item()) < 0.6):
-        #     timestamp = int(time.time())
-        #     cv2.imwrite(f"./dataset/unrecognized/img_{timestamp}.jpg", img)
-        #     print("⚠️ 置信度较低或未识别，已保存图片用于未来 AI 迭代训练！")
+                if name not in detected:
+                    detected.append(name)
+                    print(f"  识别: {name} (YOLO:{raw} {conf:.0%})")
 
-        return jsonify(detected_keywords)
+        print(f"结果: {detected}")
+        return jsonify(detected)
 
     except Exception as e:
-        print(f"推理过程中发生错误: {e}")
+        print(f"推理错误: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 if __name__ == '__main__':
-    print("🚀 YOLO 企业级智能识别服务已启动 (运行在 5000 端口)...")
+    print("AI 识别服务启动 (端口5000)")
     app.run(host='0.0.0.0', port=5000)

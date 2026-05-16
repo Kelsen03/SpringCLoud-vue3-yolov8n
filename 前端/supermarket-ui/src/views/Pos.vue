@@ -3,7 +3,7 @@
     <!-- ========= 阶段0：未开班 ========= -->
     <div v-if="!isShiftOpen" class="shift-box">
       <div class="shift-card">
-        <div class="shift-icon">🏪</div>
+        <div class="shift-icon"></div>
         <h2>收银员交班系统</h2>
         <p>开始收银前请先开班，输入找零备用金</p>
         <div class="shift-input">
@@ -21,11 +21,11 @@
     <div v-else-if="!isStarted" class="welcome-box">
       <div class="welcome-card">
         <div class="shift-bar">
-          <el-tag type="success" size="large">🟢 当班中</el-tag>
+          <el-tag type="success" size="large"> 当班中</el-tag>
           <span>备用金 ¥{{ shiftOpeningCash }}</span>
           <el-button type="warning" size="small" plain @click="showCloseDialog = true">交班</el-button>
         </div>
-        <div class="welcome-icon">👋</div>
+        <div class="welcome-icon"></div>
         <h2>欢迎使用智能收银系统</h2>
         <p>请输入会员ID开始收银，散客请直接回车</p>
         <div class="input-area">
@@ -76,54 +76,55 @@
     <div v-else class="pos-container">
       <div class="pos-header">
         <div class="member-info">
-          <el-avatar :size="40" style="background:#409EFF">{{ userId ? '会员' : '散客' }}</el-avatar>
-          <div class="info-text">
-            <div class="user-id">{{ userId ? 'ID:' + userId : '普通顾客' }}</div>
-            <div class="points" v-if="memberPoints !== null">积分: {{ memberPoints }}</div>
-          </div>
+          <el-avatar :size="40" style="background:#409EFF;font-size:16px;flex-shrink:0">{{ userId ? '会员' : '散客' }}</el-avatar>
+          <span class="user-id">{{ userId ? 'ID:' + userId : '普通顾客' }}</span>
+          <span class="points" v-if="memberPoints !== null">积分 {{ memberPoints }}</span>
         </div>
         <div class="header-actions">
-          <el-tag type="success" size="small">🟢 当班中 备用¥{{ shiftOpeningCash }}</el-tag>
-          <el-button @click="showCloseDialog = true" type="warning" size="small" plain>交班</el-button>
-          <el-button @click="exitCheckout" type="danger" size="small" plain>退出收银</el-button>
+          <el-tag type="success">¥{{ shiftOpeningCash }}</el-tag>
+          <el-button @click="showCloseDialog = true" type="warning" plain>交班</el-button>
+          <el-button @click="exitCheckout" type="danger" plain>退出</el-button>
         </div>
       </div>
 
       <div class="pos-layout">
-        <!-- 左侧：商品选择 -->
+        <!-- 左侧：摄像头 + 商品选择 -->
         <div class="pos-left">
-          <el-card shadow="never" class="product-search-card">
-            <!-- AI 识别区 -->
-            <div class="ai-section">
-              <h3>🤖 AI 智能收银 (YOLOv8)</h3>
-              <video ref="videoRef" autoplay playsinline class="ai-video"></video>
-              <el-button type="success" size="large" @click="captureAndRecognize" :loading="isRecognizing" class="ai-btn">
-                📸 拍照识别
-              </el-button>
-            </div>
+          <!-- AI 摄像头 -->
+          <div class="ai-section">
+            <video ref="videoRef" autoplay playsinline class="ai-video"></video>
+            <el-button type="success" @click="captureAndRecognize" :loading="isRecognizing" size="large" style="font-size:20px;padding:14px 48px;margin-top:8px">拍照识别</el-button>
+          </div>
 
+          <el-card shadow="never" class="product-search-card">
+            <!-- 条形码输入 -->
+            <div class="barcode-box">
+              <el-input v-model="barcodeInput" placeholder="条形码（扫码枪自动填写，或手动输入按回车）" size="large" @keyup.enter="onBarcodeEnter" @change="onBarcodeEnter" clearable>
+                <template #prefix>📷</template>
+              </el-input>
+            </div>
             <!-- 搜索区 -->
             <div class="search-box">
-              <el-select v-model="currentProductId" filterable placeholder="🔍 扫码或搜索商品..." size="large" style="flex:1" popper-class="product-popper">
+              <el-select v-model="currentProductId" filterable placeholder="扫码或搜索商品..." size="large" style="flex:1" popper-class="product-popper">
                 <el-option v-for="item in productList" :key="item.id" :label="item.name" :value="item.id" :disabled="!item.price||item.price<=0">
                   <div class="product-option">
                     <span class="opt-name">{{ item.name }}</span>
                     <span v-if="item.price>0" class="opt-price">¥{{ item.price }}</span>
-                    <el-tag v-else type="danger" size="small">未定价</el-tag>
+                    <el-tag v-else type="danger">未定价</el-tag>
                   </div>
                 </el-option>
               </el-select>
               <el-input-number v-model="currentQty" :min="1" size="large" style="width:100px" @keyup.enter="addToCart" />
-              <el-button type="primary" size="large" @click="addToCart" :disabled="!currentProductId"><el-icon><ShoppingCart /></el-icon> 加入</el-button>
+              <el-button type="primary" size="large" @click="addToCart" :disabled="!currentProductId" style="font-size:16px;padding:12px 28px"><el-icon><ShoppingCart /></el-icon> 加入</el-button>
             </div>
 
             <!-- 热门商品（按品类取首条，统一高度） -->
             <div class="quick-products">
-              <div class="section-title">🔥 热门商品</div>
+              <div class="section-title">热门商品</div>
               <div class="product-strip">
                 <div v-for="item in hotProducts" :key="item.id" class="hot-card" @click="quickAdd(item)">
                   <div class="hot-name">{{ item.name }}</div>
-                  <el-tag size="small" type="info">{{ item.category }}</el-tag>
+                  <el-tag type="info">{{ item.category }}</el-tag>
                   <div class="hot-price">¥{{ item.price.toFixed(2) }}</div>
                 </div>
               </div>
@@ -140,7 +141,7 @@
               <div v-else class="cart-item" v-for="(item, index) in cart" :key="index">
                 <div class="item-main">
                   <div class="item-title">{{ item.name }}</div>
-                  <el-tag v-if="item.usePromotion" type="danger" size="small" effect="plain">促销</el-tag>
+                  <el-tag v-if="item.usePromotion" type="danger" effect="plain">促销</el-tag>
                 </div>
                 <div class="item-actions">
                   <div class="price-calc">
@@ -176,7 +177,7 @@
     </div>
 
     <!-- ========= 交班对账弹窗 ========= -->
-    <el-dialog v-model="showCloseDialog" title="🧾 交班对账" width="450px" :close-on-click-modal="false">
+    <el-dialog v-model="showCloseDialog" title="交班对账" width="450px" :close-on-click-modal="false">
       <div class="close-content" v-if="closeResult">
         <el-result icon="success" title="交班完成" sub-title="请核对以下对账信息" />
         <table class="close-table">
@@ -205,7 +206,7 @@
 
 <script setup>
 import { createOrder, getMemberPoints, openShift, closeShift, getCurrentShift } from '@/api/order'
-import { getProductList, getHotProducts, aiRecognizeProduct } from '@/api/product'
+import { getProductList, getHotProducts, getProductByBarcode, aiRecognizeProduct } from '@/api/product'
 import request from '@/utils/request'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -343,14 +344,70 @@ const captureAndRecognize = async () => {
         hit++
       }
     })
-    ElMessage.success(hit ? `🎉 AI 识别并加入 ${hit} 件商品` : '未能匹配到商品')
+    if (hit > 0) {
+      ElMessage.success(`🎉 AI 识别并加入 ${hit} 件商品`)
+    } else if (keys.length > 0) {
+      ElMessage.warning(`AI 检测到: ${keys.join('、')}，商品库中无匹配\n💡 请将饮料瓶对准摄像头`)
+    } else {
+      ElMessage.info('未检测到物体，请确保光线充足、瓶子在画面中央')
+    }
   } catch (e) {
     ElMessage.error('AI 服务连接失败，请检查 5000 端口')
   }
   isRecognizing.value = false
 }
 
+const scanBuffer = ref('')
+const barcodeInput = ref('')
+let scanTimer = null
+
+/** 条形码输入框回车处理 */
+const onBarcodeEnter = async () => {
+  const code = barcodeInput.value.trim()
+  if (!code || code.length < 8) return
+  try {
+    const res = await getProductByBarcode(code)
+    if (res.data?.id) {
+      const p = res.data
+      const exist = cart.value.find(c => c.id === p.id)
+      exist ? exist.quantity++ : cart.value.push({ id: p.id, name: p.name, price: p.price, promotionPrice: p.promoPrice, usePromotion: false, quantity: 1 })
+      ElMessage.success(`条形码: ${p.name} ¥${p.price}`)
+      barcodeInput.value = ''
+    } else {
+      ElMessage.warning(`条形码 ${code} 未匹配到商品`)
+    }
+  } catch (_) {}
+}
+
+/** 扫码枪输入处理：快速输入13位数字+回车 → 条形码查商品 */
+const handleBarcodeScan = (e) => {
+  if (!isShiftOpen.value || !isStarted.value) return
+  // 仅拦截数字键
+  if (e.key >= '0' && e.key <= '9') {
+    scanBuffer.value += e.key
+    clearTimeout(scanTimer)
+    scanTimer = setTimeout(() => { scanBuffer.value = '' }, 3000)
+  } else if (e.key === 'Enter' && scanBuffer.value.length >= 8) {
+    e.preventDefault()
+    const code = scanBuffer.value
+    scanBuffer.value = ''
+    clearTimeout(scanTimer)
+    getProductByBarcode(code).then(res => {
+      if (res.data?.id) {
+        const p = res.data
+        const exist = cart.value.find(c => c.id === p.id)
+        exist ? exist.quantity++ : cart.value.push({ id: p.id, name: p.name, price: p.price, promotionPrice: p.promoPrice, usePromotion: false, quantity: 1 })
+        ElMessage.success(`扫码: ${p.name} ¥${p.price}`)
+      } else {
+        ElMessage.warning(`条形码 ${code} 未找到商品`)
+      }
+    }).catch(() => {})
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleBarcodeScan)
+
   try {
     const r = await getCurrentShift()
     if (r.data?.hasShift) {
@@ -421,6 +478,7 @@ const submitOrder = async () => {
 const reset = () => { cart.value = []; userId.value = ''; orderInfo.value = {}; isStarted.value = false; isFinished.value = false }
 
 onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleBarcodeScan)
   if (videoRef.value?.srcObject) videoRef.value.srcObject.getTracks().forEach(t => t.stop())
 })
 </script>
@@ -444,29 +502,41 @@ onBeforeUnmount(() => {
 .shift-bar { display:flex;align-items:center;gap:12px;background:#f0f9eb;padding:10px 16px;border-radius:8px;margin-bottom:24px }
 
 /* 收银台 */
-.pos-container { display:flex;flex-direction:column;height:calc(100vh - 100px);gap:16px }
-.pos-header { display:flex;justify-content:space-between;align-items:center;background:#fff;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04) }
-.member-info { display:flex;align-items:center;gap:12px }
-.header-actions { display:flex;align-items:center;gap:8px }
-.pos-layout { display:flex;gap:16px;flex:1;overflow:hidden }
-.pos-left { flex:1;display:flex;flex-direction:column }
+.pos-container { display:flex;flex-direction:column;height:calc(100vh - 60px);gap:8px;padding:0 }
+.pos-layout { display:flex;gap:10px;flex:1;overflow:hidden; }
+.pos-left { flex:1;display:flex;flex-direction:column;min-width:0 }
 .product-search-card { height:100%;display:flex;flex-direction:column }
-.ai-section { text-align:center;background:#f8f9fa;padding:12px;border-radius:8px;margin-bottom:12px }
-.ai-section h3 { font-size:15px;margin:0 0 8px;color:#303133 }
-.ai-video { width:100%;max-width:280px;border:3px solid #333;border-radius:8px;background:#222;display:block;margin:0 auto }
-.ai-btn { margin-top:8px;display:block;margin-left:auto;margin-right:auto }
-.search-box { display:flex;gap:10px;margin-bottom:16px }
+:deep(.product-search-card .el-card__body) { padding:6px 8px }
+/* AI 摄像头区域 */
+.ai-section { text-align:center;padding:2px 0;margin-bottom:6px }
+.ai-video { width:100%;max-width:560px;border:3px solid #333;border-radius:8px;background:#1a1a1a;display:block;margin:0 auto }
+.pos-header { display:flex;align-items:center;background:#fff;padding:10px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04);gap:10px;width:100% }
+.pos-header .user-id { font-size:20px;white-space:nowrap }
+.pos-header .points { font-size:14px }
+.pos-header .el-tag { font-size:14px;padding:5px 10px;flex-shrink:0 }
+.pos-header .el-button { font-size:14px;padding:6px 12px;flex-shrink:0 }
+.member-info { display:flex;align-items:center;gap:12px;flex:1;min-width:0 }
+.header-actions { display:flex;align-items:center;gap:6px;width:460px;flex-shrink:0;justify-content:flex-end }
+.header-actions { display:flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap }
+.pos-header .el-button { font-size:16px;padding:8px 16px }
+.pos-header .el-button + .el-button { margin-left:0 }
+.barcode-box { margin-bottom:6px }
+.search-box { display:flex;gap:6px;margin-bottom:6px }
 .quick-products { flex:1;overflow-y:auto }
-.product-strip { display:grid;grid-template-columns:repeat(5, 1fr);gap:10px }
-.hot-card { background:#fff;border:1px solid #ebeef5;border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;text-align:center }
-.hot-card:hover { border-color:#67c23a;transform:translateY(-2px);box-shadow:0 4px 12px rgba(103,194,58,.12) }
-.hot-emoji { font-size:28px;margin-bottom:4px }
-.hot-name { font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px }
-.hot-price { color:#f56c6c;font-weight:bold;font-size:15px;margin-bottom:4px }
+.product-strip { display:grid;grid-template-columns:repeat(5, 1fr);gap:8px }
+.hot-card { background:#fff;border:1px solid #ebeef5;border-radius:8px;padding:12px 8px;cursor:pointer;text-align:center }
+.hot-card:hover { border-color:#67c23a;box-shadow:0 2px 6px rgba(103,194,58,.1) }
+.hot-name { font-weight:600;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;color:#303133 }
+.hot-price { color:#f56c6c;font-weight:bold;font-size:18px }
+.barcode-box { margin-bottom:8px }
+.barcode-box :deep(.el-input__inner) { font-size:16px !important }
+.search-box :deep(.el-input__inner) { font-size:15px !important }
+.section-title { font-size:18px;font-weight:bold;color:#303133;margin-bottom:10px }
+.hot-price { color:#f56c6c;font-weight:bold;font-size:18px }
 
-.pos-right { width:380px;display:flex;flex-direction:column }
+.pos-right { width:460px;display:flex;flex-direction:column;flex-shrink:0 }
 .cart-panel { background:#fff;border-radius:8px;display:flex;flex-direction:column;height:100%;box-shadow:0 4px 12px rgba(0,0,0,.05) }
-.cart-header { padding:16px 20px;border-bottom:1px solid #ebeef5;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:16px }
+.cart-header { padding:14px 18px;border-bottom:1px solid #ebeef5;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:16px }
 .cart-list { flex:1;overflow-y:auto;padding:10px }
 .cart-item { background:#fcfcfc;border:1px solid #ebeef5;border-radius:6px;padding:12px;margin-bottom:8px }
 .item-main { display:flex;justify-content:space-between;margin-bottom:6px }
@@ -481,7 +551,7 @@ onBeforeUnmount(() => {
 .total-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px }
 .total-row .label { font-size:16px;color:#606266 }
 .total-row .amount { font-size:28px;font-weight:bold;color:#f56c6c }
-.checkout-btn { width:100%;height:50px;font-size:18px;font-weight:bold;border-radius:25px }
+.checkout-btn { width:100%;height:56px;font-size:20px;font-weight:bold;border-radius:25px;letter-spacing:2px }
 
 /* 交班对账 */
 .close-table { width:100%;border-collapse:collapse;margin-top:12px }
@@ -494,17 +564,19 @@ onBeforeUnmount(() => {
 
 /* 复用样式 */
 .product-option { display:flex;justify-content:space-between;width:100% }
-.opt-price { color:#f56c6c }
+.opt-name { font-size:15px }
+.opt-price { color:#f56c6c;font-size:15px }
+.user-id { font-size:16px;font-weight:600 }
 .result-box { display:flex;justify-content:center;padding-top:40px }
 .receipt-card { width:400px;background:#fff;padding:24px;border:1px solid #ebeef5;box-shadow:0 4px 12px rgba(0,0,0,.05);margin-bottom:20px }
 .receipt-header { text-align:center;margin-bottom:16px }
 .receipt-header h3 { margin:0 0 4px }
-.receipt-info { font-size:14px;color:#606266;margin-bottom:16px }
+.receipt-info { font-size:15px;color:#606266;margin-bottom:16px }
 .info-row { display:flex;justify-content:space-between;margin-bottom:4px }
 .receipt-items { list-style:none;padding:0;margin:16px 0 }
 .receipt-items li { margin-bottom:8px }
 .item-name { font-weight:500;margin-bottom:2px }
-.item-calc { display:flex;justify-content:space-between;font-size:13px;color:#909399 }
+.item-calc { display:flex;justify-content:space-between;font-size:15px;color:#909399 }
 .item-total { color:#303133 }
 .receipt-total { display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:18px;font-weight:bold }
 .total-price { color:#f56c6c;font-size:22px }

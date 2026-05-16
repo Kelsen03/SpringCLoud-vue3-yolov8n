@@ -80,6 +80,14 @@ public class ProductController {
         return resultList;
     }
 
+    /** 条形码查商品：扫码枪输入数字后直接定位 */
+    @GetMapping("/barcode/{barcode}")
+    public Product byBarcode(@PathVariable String barcode) {
+        QueryWrapper<Product> qw = new QueryWrapper<>();
+        qw.eq("barcode", barcode).last("LIMIT 1");
+        return productService.getOne(qw);
+    }
+
     /** 热门商品：按销量取 TOP10 */
     @GetMapping("/hot")
     public List<Map<String, Object>> hotProducts() {
