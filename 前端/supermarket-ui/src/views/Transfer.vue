@@ -2,7 +2,10 @@
   <div class="transfer-page">
     <div class="page-header">
       <div class="header-left">
-        <h2>{{ role === 'HQ' ? '库存调拨与补货' : '店间借货与审批' }}</h2>
+        <h2 class="display-title">
+          <span class="cn-title">{{ role === 'HQ' ? '库存调拨' : '店间借货' }}</span>
+          <span class="en-title">/ Transfer.</span>
+        </h2>
         <span class="sub-text">{{ role === 'HQ' ? '处理门店间的库存流动及总部补货业务' : '向其他门店发起借货请求或处理来自其他门店的借货申请' }}</span>
       </div>
     </div>
@@ -11,62 +14,62 @@
       <el-card shadow="never" class="transfer-card">
         <el-tabs type="card" class="custom-tabs" @tab-click="handleTabClick">
           
-          <el-tab-pane :label="role === 'HQ' ? '直接调拨 (HQ)' : '发起借货申请'">
+          <el-tab-pane :label="role === 'HQ' ? '直接调拨 (HQ) / Transfer' : '发起借货申请 / Request'">
             <div class="form-wrapper">
               <div class="form-header">
-                <h3>🔄 {{ role === 'HQ' ? '库存直接调拨' : '发起借货请求' }}</h3>
+                <h3>🔄 {{ role === 'HQ' ? '库存直接调拨 / DIRECT TRANSFER' : '发起借货请求 / REQUEST STOCK' }}</h3>
                 <p>{{ role === 'HQ' ? '直接将库存从一个门店转移到另一个门店' : '请求其他门店将库存调拨至本店' }}</p>
               </div>
               
-              <el-form :model="transferForm" label-width="100px" label-position="top" size="large">
-                <el-form-item label="商品ID">
+              <el-form :model="transferForm" label-width="120px" label-position="top" size="large">
+                <el-form-item label="商品ID / Product ID">
                   <el-input v-model="transferForm.productId" placeholder="请输入商品ID">
                     <template #prefix>🏷️</template>
                   </el-input>
                 </el-form-item>
 
                 <div class="store-select-row">
-                  <el-form-item :label="role === 'HQ' ? '调出门店' : '向哪个门店借货 (被借方)'" style="flex: 1">
+                  <el-form-item :label="role === 'HQ' ? '调出门店 / From' : '被借方 / From'" style="flex: 1">
                     <el-select v-model="transferForm.fromStore" placeholder="选择出货方" style="width: 100%">
-                      <el-option label="门店1 (北京)" :value="1" :disabled="role === 'STORE' && currentStoreId === 1" />
-                      <el-option label="门店2 (上海)" :value="2" :disabled="role === 'STORE' && currentStoreId === 2" />
-                      <el-option label="门店3 (广州)" :value="3" :disabled="role === 'STORE' && currentStoreId === 3" />
+                      <el-option label="门店1 (BJ)" :value="1" :disabled="role === 'STORE' && currentStoreId === 1" />
+                      <el-option label="门店2 (SH)" :value="2" :disabled="role === 'STORE' && currentStoreId === 2" />
+                      <el-option label="门店3 (GZ)" :value="3" :disabled="role === 'STORE' && currentStoreId === 3" />
                     </el-select>
                   </el-form-item>
                   
                   <div class="arrow-icon">➜</div>
 
-                  <el-form-item :label="role === 'HQ' ? '调入门店' : '调入本门店'" style="flex: 1">
+                  <el-form-item :label="role === 'HQ' ? '调入门店 / To' : '调入本门店 / To'" style="flex: 1">
                     <el-select v-model="transferForm.toStore" placeholder="选择调入方" style="width: 100%" :disabled="role === 'STORE'">
-                      <el-option label="门店1 (北京)" :value="1" />
-                      <el-option label="门店2 (上海)" :value="2" />
-                      <el-option label="门店3 (广州)" :value="3" />
+                      <el-option label="门店1 (BJ)" :value="1" />
+                      <el-option label="门店2 (SH)" :value="2" />
+                      <el-option label="门店3 (GZ)" :value="3" />
                     </el-select>
                   </el-form-item>
                 </div>
 
-                <el-form-item label="调拨/借货数量">
+                <el-form-item label="调拨数量 / Quantity">
                   <el-input-number v-model="transferForm.count" :min="1" style="width: 100%" />
                 </el-form-item>
 
                 <el-form-item style="margin-top: 30px">
                   <el-button type="primary" style="width: 100%" @click="handleTransfer">
-                    {{ role === 'HQ' ? '强制提交调拨' : '提交借货申请' }}
+                    {{ role === 'HQ' ? '强制提交调拨 / FORCE TRANSFER' : '提交借货申请 / SUBMIT REQUEST' }}
                   </el-button>
                 </el-form-item>
               </el-form>
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="总部补货" v-if="role === 'HQ'">
+          <el-tab-pane label="总部补货 / Replenish" v-if="role === 'HQ'">
             <div class="form-wrapper">
-              <div class="form-header"><h3>总部补货</h3><p>选择商品，指定门店与数量，一键补货入库</p></div>
+              <div class="form-header"><h3>总部补货 / REPLENISH</h3><p>选择商品，指定门店与数量，一键补货入库</p></div>
 
-              <el-form :model="replenishForm" label-width="90px" label-position="top" size="large">
+              <el-form :model="replenishForm" label-width="120px" label-position="top" size="large">
 
                 <el-row :gutter="12">
                   <el-col :span="12">
-                    <el-form-item label="选择商品">
+                    <el-form-item label="选择商品 / Select Product">
                       <el-select v-model="replenishForm.productId" filterable placeholder="搜索商品名称或条形码" style="width:100%">
                         <el-option v-for="p in productList" :key="p.id" :label="(p.barcode||'') + ' ' + p.name" :value="p.id">
                           <span>{{ p.name }}</span>
@@ -76,7 +79,7 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="商品名称">
+                    <el-form-item label="商品名称 / Product Name">
                       <el-input v-model="replenishForm.productName" placeholder="自动填充或手动输入新商品名" />
                     </el-form-item>
                   </el-col>
@@ -84,19 +87,19 @@
 
                 <el-row :gutter="12">
                   <el-col :span="8">
-                    <el-form-item label="商品类别">
+                    <el-form-item label="商品类别 / Category">
                       <el-select v-model="replenishForm.category" placeholder="选择类别" style="width:100%" filterable>
                         <el-option v-for="c in CATEGORIES" :key="c" :label="c" :value="c" />
                       </el-select>
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="保质期(月)">
+                    <el-form-item label="保质期(月) / Shelf Life">
                       <el-input-number v-model="replenishForm.shelfLifeMonths" :min="1" :max="60" style="width:100%" />
                     </el-form-item>
                   </el-col>
                   <el-col :span="8">
-                    <el-form-item label="生产日期">
+                    <el-form-item label="生产日期 / Prod Date">
                       <el-date-picker v-model="replenishForm.productionDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
                     </el-form-item>
                   </el-col>
@@ -104,7 +107,7 @@
 
                 <el-row :gutter="12">
                   <el-col :span="12">
-                    <el-form-item label="补货门店">
+                    <el-form-item label="补货门店 / Stores">
                       <el-select v-model="replenishForm.storeId" multiple collapse-tags placeholder="选择门店" style="width:100%">
                         <el-option label="旗舰店（门店1）" :value="1" />
                         <el-option label="社区店（门店2）" :value="2" />
@@ -114,77 +117,77 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="补货数量（每店）">
+                    <el-form-item label="补货数量 / Qty (per store)">
                       <el-input-number v-model="replenishForm.count" :min="1" :max="9999" style="width:100%" />
                     </el-form-item>
                   </el-col>
                 </el-row>
 
-                <el-button type="success" style="width:100%;margin-top:12px;height:44px;font-size:16px" @click="handleReplenish">确认补货入库</el-button>
+                <el-button type="success" style="width:100%;margin-top:12px;height:44px;font-size:16px" @click="handleReplenish">确认补货入库 / REPLENISH</el-button>
               </el-form>
 
               <!-- 智能补货推荐 -->
               <el-divider />
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <h4 style="margin:0">智能补货推荐</h4>
-                <el-button size="small" type="primary" @click="loadRecommend">刷新推荐</el-button>
+                <h4 style="margin:0">智能补货推荐 / Smart Replenishment Recommend</h4>
+                <el-button size="small" type="primary" @click="loadRecommend">刷新推荐 / Refresh</el-button>
               </div>
               <el-table :data="recommendList" border stripe size="small" max-height="300">
-                <el-table-column label="商品名" min-width="120">
+                <el-table-column label="商品名 / Product" min-width="120">
                   <template #default="{row}">
                     <span>{{ row.product_name }}</span>
                     <el-tag v-if="row.days_to_expire < 30" type="warning" size="small" style="margin-left:4px">临期{{ row.days_to_expire }}天</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="门店" width="90">
+                <el-table-column label="门店 / Store" width="90">
                   <template #default="{row}">{{ ['','旗舰店','社区店','生鲜店'][row.store_id]||row.store_id }}</template>
                 </el-table-column>
-                <el-table-column prop="stock" label="库存" width="60" />
-                <el-table-column prop="daily_sales" label="日均销量" width="75" />
-                <el-table-column label="建议补货" width="85">
+                <el-table-column prop="stock" label="库存 / Stock" width="80" />
+                <el-table-column prop="daily_sales" label="日均销量 / Daily" width="100" />
+                <el-table-column label="建议补货 / Advise" width="120">
                   <template #default="{row}">
                     <span :style="{color:row.recommend_qty>0?'#f56c6c':'#67c23a',fontWeight:'bold'}">
                       {{ row.recommend_qty > 0 ? '+' + row.recommend_qty : '充足' }}
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="70">
+                <el-table-column label="操作 / Action" width="100">
                   <template #default="{row}">
-                    <el-button v-if="row.recommend_qty>0" size="small" type="primary" @click="quickReplenish(row)">补货</el-button>
+                    <el-button v-if="row.recommend_qty>0" size="small" type="primary" @click="quickReplenish(row)">补货 / Rep</el-button>
                   </template>
                 </el-table-column>
               </el-table>
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="调拨单记录与审批">
+          <el-tab-pane label="调拨单记录与审批 / Records & Approvals">
             <div class="list-wrapper" style="padding: 20px;">
-              <el-button type="primary" plain @click="fetchTransferList" style="margin-bottom: 15px;">刷新列表</el-button>
+              <el-button type="primary" plain @click="fetchTransferList" style="margin-bottom: 15px;">刷新列表 / REFRESH</el-button>
               <el-table :data="transferList" border stripe>
-                <el-table-column prop="id" label="单号" width="80" />
-                <el-table-column prop="createTime" label="时间" width="160" />
-                <el-table-column prop="productId" label="商品ID" width="80" />
-                <el-table-column label="方向" width="150">
+                <el-table-column prop="id" label="单号 / ID" width="100" />
+                <el-table-column prop="createTime" label="时间 / Time" width="200" />
+                <el-table-column prop="productId" label="商品ID / Product" width="120" />
+                <el-table-column label="方向 / Direction" min-width="150">
                   <template #default="{ row }">
                     店{{ row.fromStore }} ➜ 店{{ row.toStore }}
                   </template>
                 </el-table-column>
-                <el-table-column prop="quantity" label="数量" width="80" />
-                <el-table-column prop="status" label="状态" min-width="100">
+                <el-table-column prop="quantity" label="数量 / Qty" width="100" />
+                <el-table-column prop="status" label="状态 / Status" min-width="150">
                   <template #default="{ row }">
                     <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="160" fixed="right" align="center">
+                <el-table-column label="操作 / Action" width="200" fixed="right" align="center">
                   <template #default="{ row }">
                     <div v-if="row.status === 'PENDING' && (role === 'HQ' || currentStoreId === row.fromStore)">
-                      <el-button size="small" type="success" @click="handleApprove(row.id)">同意</el-button>
-                      <el-button size="small" type="danger" @click="handleReject(row.id)">拒绝</el-button>
+                      <el-button size="small" type="success" @click="handleApprove(row.id)">同意 / YES</el-button>
+                      <el-button size="small" type="danger" @click="handleReject(row.id)">拒绝 / NO</el-button>
                     </div>
-                    <span v-else-if="row.status === 'PENDING' && currentStoreId === row.toStore" style="color:#909399; font-size:13px;">
-                      等待对方审批
+                    <span v-else-if="row.status === 'PENDING' && currentStoreId === row.toStore" style="color:#909399; font-size:12px;">
+                      等待审批 PENDING
                     </span>
-                    <span v-else style="color:#c0c4cc; font-size:13px;">无</span>
+                    <span v-else style="color:#c0c4cc; font-size:12px;">-</span>
                   </template>
                 </el-table-column>
               </el-table>
@@ -359,6 +362,7 @@ const handleReplenish = async () => {
     replenishForm.category = ''
     replenishForm.productionDate = ''
     replenishForm.count = 100
+    loadRecommend()
   } else {
     ElMessage.error('所有补货操作均失败')
   }
@@ -402,7 +406,8 @@ const handleReject = async (id) => {
 }
 
 const handleTabClick = (tab) => {
-  if (tab.props.label === '调拨单记录与审批') {
+  // tab.props.label 包含了中英文，我们需要使用 includes 进行模糊匹配
+  if (tab.props.label && tab.props.label.includes('调拨单记录与审批')) {
     fetchTransferList()
   }
 }
@@ -435,15 +440,33 @@ onMounted(() => {
 }
 
 .page-header {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 60px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 2px solid var(--w-text);
 }
 
-.header-left h2 {
+.display-title {
   margin: 0;
-  font-size: 24px;
-  color: #303133;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.cn-title {
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+.en-title {
+  font-size: 64px;
+  letter-spacing: -2px;
+  color: var(--w-text-gray);
+  opacity: 0.3;
 }
 
 .sub-text {

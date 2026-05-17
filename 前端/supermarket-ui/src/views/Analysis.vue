@@ -1,286 +1,436 @@
 <template>
-  <div class="analysis-page">
+  <div class="analysis-page page-container">
     <div class="page-header">
       <div class="header-left">
-        <h2>数据分析看板</h2>
-        <span class="sub-text">多维度展示销售与库存数据趋势</span>
+        <h2 class="display-title">
+          <span class="cn-title">数据分析</span>
+          <span class="en-title">/ Analysis.</span>
+        </h2>
+        <span class="sub-text">Sales, Trends & Staff Performance / 数据驱动决策</span>
       </div>
       <div class="header-right">
-        <el-button type="primary" plain size="small" @click="initCharts">🔄 刷新数据</el-button>
+        <button class="minimal-btn" @click="initCharts">刷新数据 REFRESH</button>
       </div>
     </div>
     
     <div class="dashboard-grid">
       <!-- 销量排行图 -->
-      <el-card shadow="hover" class="chart-card rank-card">
-        <template #header>
-          <div class="card-header">
-            <span>🔥 商品销量 TOP 10</span>
-          </div>
-        </template>
+      <div class="minimal-card rank-card">
+        <div class="card-header">
+          <span class="card-title">商品销量 TOP 10 <span class="en-text">/ TOP PRODUCTS</span></span>
+        </div>
         <div ref="rankChartRef" style="width: 100%; height: 350px;"></div>
-      </el-card>
+      </div>
 
       <!-- 门店销售排行图 -->
-      <el-card shadow="hover" class="chart-card store-card">
-        <template #header>
-          <div class="card-header">
-            <span>🏪 门店销售额占比</span>
-          </div>
-        </template>
+      <div class="minimal-card store-card">
+        <div class="card-header">
+          <span class="card-title">门店销售额占比 <span class="en-text">/ STORE REVENUE</span></span>
+        </div>
         <div ref="storeChartRef" style="width: 100%; height: 350px;"></div>
-      </el-card>
+      </div>
       
       <!-- 区域热销偏好 -->
-      <el-card shadow="hover" class="chart-card preference-card">
-        <template #header>
-          <div class="card-header">
-            <span>📊 区域/品类热销偏好分析</span>
-          </div>
-        </template>
-        <div ref="preferenceChartRef" style="width: 100%; height: 400px;"></div>
-      </el-card>
-
-      <!-- 补货清单 -->
-      <el-card shadow="hover" class="chart-card replenish-card">
-        <template #header>
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <span>补货清单</span>
-            <div style="display:flex;gap:8px">
-              <el-select v-model="replenishStore" placeholder="全部门店" clearable size="small" style="width:140px" @change="loadReplenish">
-                <el-option label="旗舰店" :value="1" />
-                <el-option label="社区店" :value="2" />
-                <el-option label="生鲜店" :value="3" />
-              </el-select>
-              <el-button type="success" size="small" @click="exportReplenish">导出Excel</el-button>
-            </div>
-          </div>
-        </template>
-        <div class="replenish-stats" v-if="replenishStats">
-          <span>本月补货 {{ replenishStats.total }} 次</span>
-          <span>旗舰店 {{ replenishStats.s1 }} 次</span>
-          <span>社区店 {{ replenishStats.s2 }} 次</span>
-          <span>生鲜店 {{ replenishStats.s3 }} 次</span>
+      <div class="minimal-card preference-card">
+        <div class="card-header">
+          <span class="card-title">区域热销偏好分析 <span class="en-text">/ REGION PREFERENCE</span></span>
         </div>
-        <el-table :data="replenishList" border stripe size="small" max-height="350">
-          <el-table-column prop="id" label="编号" width="70" />
-          <el-table-column prop="product_name" label="商品名" min-width="140" />
-          <el-table-column prop="category" label="品类" width="90" />
-          <el-table-column label="门店" width="90">
-            <template #default="{row}">{{ ['','旗舰店','社区店','生鲜店'][row.store_id]||'门店'+row.store_id }}</template>
-          </el-table-column>
-          <el-table-column prop="count" label="数量" width="70" />
-          <el-table-column prop="production_date" label="生产日期" width="110" />
-          <el-table-column prop="shelf_life_months" label="保质期(月)" width="90" />
-          <el-table-column prop="create_time" label="补货时间" width="160" />
-        </el-table>
-      </el-card>
+        <div ref="preferenceChartRef" style="width: 100%; height: 500px;"></div>
+      </div>
+
+      <!-- 🌟 新增：收银员排班与对账分析 🌟 -->
+      <div class="minimal-card shift-card">
+        <div class="card-header">
+          <span class="card-title">收银员排班与财务对账 <span class="en-text">/ CASHIER SHIFT & AUDIT</span></span>
+        </div>
+        <div class="table-container" style="padding: 20px;">
+          <el-table :data="shiftRecords" stripe style="width: 100%">
+            <el-table-column prop="store_id" label="门店 / Store" width="100">
+              <template #default="{ row }">
+                <span class="id-text">店{{ row.store_id }}</span>
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="cashier_username" label="收银员 / Cashier" width="120">
+              <template #default="{ row }">
+                <span class="product-name">{{ row.cashier_username }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="工作时间 / Time" width="220">
+              <template #default="{ row }">
+                <div class="time-range">
+                  <span class="mono-text">{{ dayjs(row.shift_start).format('MM.DD HH:mm') }}</span>
+                  <span style="color: var(--w-text-gray); margin: 0 4px;">-</span>
+                  <span class="mono-text">{{ row.shift_end ? dayjs(row.shift_end).format('HH:mm') : '进行中' }}</span>
+                </div>
+              </template>
+            </el-table-column>
+
+            <el-table-column prop="work_hours" label="工时 / Hours" width="100" align="center">
+              <template #default="{ row }">
+                <span class="mono-text" style="font-weight: 600;">{{ row.work_hours }} h</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column prop="total_orders" label="订单数 / Orders" width="120" align="center">
+              <template #default="{ row }">
+                <span class="mono-text">{{ row.total_orders || 0 }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="备用金 / Opening" width="120" align="right">
+              <template #default="{ row }">
+                <span class="price-text">¥ {{ row.opening_cash?.toFixed(2) }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="系统应收 / System" width="120" align="right">
+              <template #default="{ row }">
+                <span class="price-text">¥ {{ row.system_cash?.toFixed(2) || '0.00' }}</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="实际交班 / Closing" width="120" align="right">
+              <template #default="{ row }">
+                <span class="price-text" v-if="row.status === 'CLOSED'">¥ {{ row.closing_cash?.toFixed(2) }}</span>
+                <span v-else class="mono-text" style="color: var(--w-text-gray)">-</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="对账差异 / Diff" min-width="120" align="right" fixed="right">
+              <template #default="{ row }">
+                <span v-if="row.status === 'CLOSED'" 
+                      class="price-text" 
+                      :class="{ 'diff-danger': row.diff_cash < 0, 'diff-success': row.diff_cash >= 0 }">
+                  {{ row.diff_cash > 0 ? '+' : '' }}{{ row.diff_cash?.toFixed(2) }}
+                </span>
+                <span v-else class="minimal-tag warning">当班中 ACTIVE</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import * as XLSX from 'xlsx'
-import { getProductRank, getStoreRank, getRegionPreference, getReplenishHistory } from '@/api/analysis'
+import { getStoreRank, getProductRank, getPreferenceAnalysis, getShiftRecordAnalysis } from '@/api/analysis'
+import dayjs from 'dayjs'
 
 const rankChartRef = ref(null)
 const storeChartRef = ref(null)
 const preferenceChartRef = ref(null)
 
-// 补货数据
-const replenishStore = ref(null)
-const replenishList = ref([])
-const replenishStats = ref(null)
+let rankChart = null
+let storeChart = null
+let preferenceChart = null
 
-const loadReplenish = async () => {
-  try {
-    const res = await getReplenishHistory(replenishStore.value || null)
-    const all = res.data || []
-    // 过滤本月
-    const now = new Date()
-    const thisMonth = all.filter(r => {
-      const t = new Date(r.create_time)
-      return t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear()
-    })
-    replenishList.value = thisMonth
-    replenishStats.value = {
-      total: thisMonth.length,
-      s1: thisMonth.filter(r => r.store_id === 1).length,
-      s2: thisMonth.filter(r => r.store_id === 2).length,
-      s3: thisMonth.filter(r => r.store_id === 3).length
-    }
-  } catch (_) {}
-}
+const shiftRecords = ref([])
 
-const exportReplenish = () => {
-  const data = replenishList.value.map(r => ({
-    '编号': r.id,
-    '商品名': r.product_name,
-    '品类': r.category,
-    '门店': ['','旗舰店','社区店','生鲜店'][r.store_id]||r.store_id,
-    '数量': r.count,
-    '生产日期': r.production_date,
-    '保质期(月)': r.shelf_life_months,
-    '补货时间': r.create_time
-  }))
-  const ws = XLSX.utils.json_to_sheet(data)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '本月补货清单')
-  XLSX.writeFile(wb, `补货清单_${new Date().toISOString().slice(0,7)}.xlsx`)
-}
-
-// 初始化图表
 const initCharts = async () => {
-  // 1. 商品销量 TOP10
-  try {
-    const rankRes = await getProductRank()
-    const rankData = (rankRes.data || []).slice(0, 10)
+  if (!rankChart) rankChart = echarts.init(rankChartRef.value)
+  if (!storeChart) storeChart = echarts.init(storeChartRef.value)
+  if (!preferenceChart) preferenceChart = echarts.init(preferenceChartRef.value)
 
-    const rankChart = echarts.init(rankChartRef.value)
-    if (rankData.length === 0) {
-      rankChart.setOption({ title: { text: '暂无数据', left:'center', top:'center', textStyle:{color:'#999'} } })
-    } else {
-      rankChart.setOption({
-        tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name}<br/>销量: ${p[0].value}` },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
-        yAxis: { type: 'category', data: rankData.map(i => i.product_name).reverse() },
-        series: [{
-          type: 'bar',
-          data: rankData.map(i => i.total_quantity).reverse(),
-          itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#83bff6'},{offset:1,color:'#188df0'}]), borderRadius:[0,4,4,0] },
-          label: { show: true, position: 'right' }
-        }]
-      })
-    }
-  } catch (e) { console.error('商品排行失败', e) }
-
-  // 2. 门店销售额占比
   try {
-    const storeRes = await getStoreRank()
+    // 并发请求所有图表和表格数据
+    const [rankRes, storeRes, prefRes, shiftRes] = await Promise.all([
+      getProductRank(),
+      getStoreRank(),
+      getPreferenceAnalysis(),
+      getShiftRecordAnalysis()
+    ])
+
+    // 填充排班表数据
+    shiftRecords.value = shiftRes.data || []
+
+    const productData = rankRes.data || []
     const storeData = storeRes.data || []
+    const prefData = prefRes.data || []
 
-    const storeChart = echarts.init(storeChartRef.value)
-    if (storeData.length === 0) {
-      storeChart.setOption({ title: { text: '暂无数据', left:'center', top:'center', textStyle:{color:'#999'} } })
-    } else {
-      storeChart.setOption({
-        tooltip: { trigger: 'item' },
-        legend: { bottom: '0%' },
-        series: [{
-          type: 'pie', radius: ['40%','70%'], itemStyle: { borderRadius:10, borderColor:'#fff', borderWidth:2 },
-          label: { show:true, formatter:'{b}: {d}%' },
-          data: storeData.map(i => ({ value: i.total_sales, name: `门店 ${i.store_id}` }))
-        }]
+    // 极简黑白灰配色体系
+    const wColors = ['#000000', '#333333', '#666666', '#999999', '#cccccc', '#eeeeee']
+
+    // 1. 商品销量排行 (柱状图)
+    rankChart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { 
+        type: 'value',
+        axisLine: { show: false },
+        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+      },
+      yAxis: { 
+        type: 'category', 
+        data: productData.map(item => item.product_name).reverse(),
+        axisLine: { lineStyle: { color: '#000' } }
+      },
+      series: [
+        {
+          name: '销量',
+          type: 'bar',
+          data: productData.map(item => item.total_quantity).reverse(),
+          itemStyle: { color: '#000000' },
+          barWidth: '40%'
+        }
+      ]
+    })
+
+    // 2. 门店销售占比 (饼图)
+    storeChart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { top: 'bottom', icon: 'circle' },
+      color: wColors,
+      series: [
+        {
+          name: '销售额',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 0,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: { show: false, position: 'center' },
+          emphasis: {
+            label: { show: true, fontSize: '20', fontWeight: 'bold' }
+          },
+          labelLine: { show: false },
+          data: storeData.map(item => ({
+            name: '门店 ' + item.store_id,
+            value: item.total_sales
+          }))
+        }
+      ]
+    })
+
+    // 3. 区域偏好分析 (雷达图)
+    // 提取所有门店和所有品类
+    const stores = [...new Set(prefData.map(item => '门店 ' + item.store_id))]
+    const categories = [...new Set(prefData.map(item => item.category))]
+    
+    // 动态计算每个品类的最大值（加一点冗余，使图表更好看）
+    const radarIndicator = categories.map(cat => {
+      const maxVal = Math.max(...prefData.filter(item => item.category === cat).map(item => item.sales || 0), 10)
+      return { name: cat, max: Math.ceil(maxVal * 1.2) }
+    })
+    
+    const radarData = stores.map(storeName => {
+      const storeId = storeName.replace('门店 ', '')
+      const values = categories.map(cat => {
+        const found = prefData.find(item => item.store_id == storeId && item.category === cat)
+        return found ? found.sales : 0
       })
-    }
-  } catch (e) { console.error('门店排行失败', e) }
+      return { name: storeName, value: values }
+    })
 
-  // 3. 区域热销偏好
-  try {
-    const res = await getRegionPreference()
-    const prefData = res.data || []
+    preferenceChart.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { data: stores, bottom: 0, icon: 'circle' },
+      color: wColors,
+      radar: {
+        indicator: radarIndicator,
+        radius: '65%', // 放大雷达图
+        splitArea: { show: false },
+        axisLine: { lineStyle: { color: '#ccc' } },
+        splitLine: { lineStyle: { color: '#eee' } }
+      },
+      series: [
+        {
+          name: '区域偏好',
+          type: 'radar',
+          data: radarData,
+          symbolSize: 6,
+          lineStyle: { width: 2 },
+          areaStyle: { opacity: 0.1 } // 增加一点透明填充色区分度
+        }
+      ]
+    })
 
-    if (prefData.length === 0) {
-      const prefChart = echarts.init(preferenceChartRef.value)
-      prefChart.setOption({
-        title: { text: '暂无数据\n请先进行收银交易', left:'center', top:'center', textStyle:{color:'#999',fontSize:14} }
-      })
-    } else {
-      const stores = [...new Set(prefData.map(d => d.store_id))].sort()
-      const categories = [...new Set(prefData.map(d => d.category))]
-
-      const series = categories.map(cat => ({
-        name: cat, type: 'bar', stack: 'total',
-        label: { show: true }, emphasis: { focus: 'series' },
-        data: stores.map(s => {
-          const item = prefData.find(d => d.store_id === s && d.category === cat)
-          return item ? item.sales : 0
-        })
-      }))
-
-      const prefChart = echarts.init(preferenceChartRef.value)
-      prefChart.setOption({
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: { top: '0%' },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true, top: '10%' },
-        xAxis: { type: 'category', data: stores.map(s => `门店 ${s}`) },
-        yAxis: { type: 'value' },
-        series
-      })
-    }
   } catch (e) {
-    console.error('获取区域偏好失败', e)
+    console.error('获取图表数据失败', e)
   }
 }
 
-onMounted(() => {
-  loadReplenish()
+const handleResize = () => {
+  if (rankChart) rankChart.resize()
+  if (storeChart) storeChart.resize()
+  if (preferenceChart) preferenceChart.resize()
+}
 
-  initCharts()
-  // 监听窗口大小变化，重绘图表
-  window.addEventListener('resize', () => {
-    echarts.getInstanceByDom(rankChartRef.value)?.resize()
-    echarts.getInstanceByDom(storeChartRef.value)?.resize()
-    echarts.getInstanceByDom(preferenceChartRef.value)?.resize()
+onMounted(() => {
+  nextTick(() => {
+    initCharts()
+    window.addEventListener('resize', handleResize)
   })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  if (rankChart) rankChart.dispose()
+  if (storeChart) storeChart.dispose()
+  if (preferenceChart) preferenceChart.dispose()
 })
 </script>
 
 <style scoped>
-.analysis-page {
-  /* padding: 20px; */
+.page-container {
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-end;
+  margin-bottom: 40px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 2px solid var(--w-text);
 }
 
-.header-left h2 {
+.display-title {
   margin: 0;
-  font-size: 24px;
-  color: #303133;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.cn-title {
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+.en-title {
+  font-size: 64px;
+  letter-spacing: -2px;
+  color: var(--w-text-gray);
+  opacity: 0.3;
 }
 
 .sub-text {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 5px;
-  display: block;
+  font-size: 14px;
+  color: var(--w-text-gray);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-left: 4px;
+}
+
+.minimal-btn {
+  background: transparent;
+  border: 1px solid var(--w-text);
+  color: var(--w-text);
+  padding: 8px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.minimal-btn:hover {
+  background: var(--w-text);
+  color: var(--w-bg);
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 20px;
-  grid-template-areas: 
-    "rank store"
-    "pref pref";
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
 }
 
-.rank-card {
-  grid-area: rank;
-}
-
-.store-card {
-  grid-area: store;
-}
-
-.preference-card {
-  grid-area: pref;
+.minimal-card {
+  background: transparent;
+  border: 1px solid var(--w-border);
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {
-  font-weight: bold;
+  padding: 20px;
+  border-bottom: 1px solid var(--w-border);
+}
+
+.card-title {
   font-size: 16px;
-  color: #303133;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.en-text {
+  font-size: 12px;
+  color: var(--w-text-gray);
+  font-weight: 500;
+}
+
+.rank-card {
+  grid-column: 1 / 2;
+}
+
+.store-card {
+  grid-column: 2 / 3;
+}
+
+.preference-card {
+  grid-column: 1 / 3;
+}
+
+.shift-card {
+  grid-column: 1 / 3;
+}
+
+.id-text, .mono-text, .price-text {
+  font-family: 'Helvetica Neue', monospace;
+  font-size: 14px;
+}
+
+.product-name {
+  font-weight: 600;
+}
+
+.diff-danger {
+  color: #ff3b30;
+  font-weight: 700;
+}
+
+.diff-success {
+  color: #34c759;
+  font-weight: 700;
+}
+
+.minimal-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border: 1px solid var(--w-border);
+}
+
+.minimal-tag.warning {
+  color: #ff9500;
+  border-color: #ff9500;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .rank-card, .store-card, .preference-card, .shift-card {
+    grid-column: 1 / -1;
+  }
 }
 </style>

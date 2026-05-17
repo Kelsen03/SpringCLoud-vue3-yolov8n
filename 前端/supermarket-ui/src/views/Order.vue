@@ -1,165 +1,198 @@
 <template>
-  <div class="order-management-container">
-    <div class="header-actions">
-      <h2>订单管理</h2>
-      <div class="action-buttons">
-        <el-button type="success" icon="Download" @click="exportExcel">导出Excel</el-button>
-        <el-button type="primary" icon="Refresh" @click="fetchOrders">刷新</el-button>
+  <div class="order-page page-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="display-title">
+          <span class="cn-title">订单管理</span>
+          <span class="en-title">/ Orders.</span>
+        </h2>
+        <span class="sub-text">Transactions & Bills / 交易与账单</span>
+      </div>
+      <div class="header-right">
+        <div class="minimal-filter" v-if="role === 'HQ'">
+          <span class="filter-label">门店 Store:</span>
+          <select v-model="storeId" @change="load" class="minimal-select">
+            <option :value="''">全部门店 (ALL)</option>
+            <option :value="1">门店 1 (BJ)</option>
+            <option :value="2">门店 2 (SH)</option>
+            <option :value="3">门店 3 (GZ)</option>
+          </select>
+        </div>
       </div>
     </div>
-    
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stat-cards">
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-title" style="color: #1d1d1f;">当前列表订单总额</div>
-          <div class="stat-value" style="color: #1d1d1f;">￥{{ totalAmountSum.toFixed(2) }}</div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-title">当前列表订单总数</div>
-          <div class="stat-value">{{ validOrderList.length }} 单</div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-title">已选订单总额</div>
-          <div class="stat-value highlight">￥{{ selectedAmountSum.toFixed(2) }}</div>
-        </el-card>
-      </el-col>
-    </el-row>
-    
-    <el-card shadow="never">
+
+    <!-- 统计看板与导出 -->
+    <div class="stat-overview">
+      <div class="stat-box">
+        <div class="stat-label">总营收 <span class="en-text">/ TOTAL REVENUE</span></div>
+        <div class="stat-value">¥ {{ totalAmountSum.toFixed(2) }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">订单总数 <span class="en-text">/ TOTAL ORDERS</span></div>
+        <div class="stat-value">{{ validOrderList.length }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">已选金额 <span class="en-text">/ SELECTED AMOUNT</span></div>
+        <div class="stat-value highlight">¥ {{ selectedAmountSum.toFixed(2) }}</div>
+      </div>
+      <div class="stat-actions">
+        <button class="minimal-btn" @click="exportExcel">导出 EXCEL <span class="en-text">/ EXPORT</span></button>
+      </div>
+    </div>
+
+    <div class="table-container" style="width: 100%;">
       <el-table 
         :data="validOrderList" 
-        style="width: 100%" 
-        v-loading="loading"
+        stripe
+        style="width: 100%"
         @selection-change="handleSelectionChange"
-        border
       >
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="订单号" width="180" />
-        <el-table-column prop="createTime" label="下单时间" width="180" />
-        <el-table-column prop="memberId" label="会员ID" width="100">
-          <template #default="scope">
-            {{ scope.row.memberId || '散客' }}
+        <el-table-column type="selection" width="55" align="center" />
+        
+        <el-table-column prop="id" label="订单号 / Order ID" min-width="180">
+          <template #default="{ row }">
+            <span class="id-text">#{{ row.id }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="totalPrice" label="订单金额" sortable>
-          <template #default="scope">
-            ￥{{ scope.row.totalPrice?.toFixed(2) || '0.00' }}
+        
+        <el-table-column prop="createTime" label="下单时间 / Date" min-width="200">
+          <template #default="{ row }">
+            <span class="mono-text">{{ dayjs(row.createTime).format('YYYY.MM.DD HH:mm') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="points" label="获得积分" width="100" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="scope">
-            <el-tag type="success">已完成</el-tag>
+        
+        <el-table-column prop="memberId" label="会员 / Member" min-width="120">
+          <template #default="{ row }">
+            <span class="member-tag">{{ row.memberId ? 'M-' + row.memberId : '散客 GUEST' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        
+        <el-table-column prop="totalPrice" label="金额 / Amount" min-width="150" align="right">
+          <template #default="{ row }">
+            <span class="price-text">¥ {{ row.totalPrice?.toFixed(2) || '0.00' }}</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="points" label="积分 / Points" min-width="120" align="right">
+          <template #default="{ row }">
+            <span class="points-text">+{{ row.points }}</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="status" label="状态 / Status" min-width="150" align="center">
           <template #default="scope">
-            <el-button size="small" type="primary" plain @click="viewDetail(scope.row)">详情</el-button>
+            <span class="minimal-tag success">已完成 COMPLETED</span>
+          </template>
+        </el-table-column>
+        
+        <el-table-column label="操作 / Action" width="160" fixed="right" align="right">
+          <template #default="scope">
+            <button class="minimal-btn" @click="viewDetail(scope.row)">详情 VIEW</button>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
-    <!-- 订单详情对话框（小票样式） -->
+    <!-- 订单详情对话框（极简风格） -->
     <el-dialog
       v-model="dialogVisible"
-      title="订单详情"
+      title="订单详情 / ORDER DETAILS"
       width="400px"
-      custom-class="receipt-dialog"
+      custom-class="minimal-dialog"
+      :show-close="false"
     >
       <div class="receipt-card" v-loading="detailLoading" v-if="currentOrder">
         <div class="receipt-header">
-          <h3>连锁超市购物小票</h3>
-          <p>No. {{ currentOrder.id }}</p>
-          <p class="receipt-time">{{ currentOrder.createTime }}</p>
+          <h3>Supermarket OS</h3>
+          <p class="receipt-store">{{ currentOrder.storeName || 'Store ' + (currentOrder.storeId || storeId || 1) }}</p>
+          <div class="receipt-divider"></div>
         </div>
+        
         <div class="receipt-info">
           <div class="info-row">
-            <span>收银员：</span>
-            <span>{{ formatCashierName(currentOrder.cashierAccount || currentOrder.cashierId || currentOrder.createBy || currentOrder.cashier) }}</span>
+            <span>NO.</span>
+            <span class="mono-text">{{ currentOrder.orderNo || currentOrder.id }}</span>
           </div>
           <div class="info-row">
-            <span>会员ID：</span>
-            <span>{{ currentOrder.memberId || '散客' }}</span>
+            <span>TIME</span>
+            <span class="mono-text">{{ dayjs(currentOrder.createTime).format('YYYY-MM-DD HH:mm') }}</span>
           </div>
-          <div class="info-row" v-if="currentOrder.memberId">
-            <span>本次积分：</span>
-            <span style="color: #e6a23c; font-weight: bold;">+{{ currentOrder.points || 0 }}</span>
+          <div class="info-row" v-if="currentOrder.createBy">
+            <span>CASHIER</span>
+            <span>{{ currentOrder.createBy }}</span>
           </div>
         </div>
-        <el-divider border-style="dashed" />
         
-        <!-- 如果后端有返回 items，直接展示；如果没有，给出提示 -->
-        <div v-if="!currentOrder.items || currentOrder.items.length === 0" class="no-items-tip">
-          * 详细商品明细需要后端提供查询接口 *
+        <div class="receipt-divider dashed"></div>
+        
+        <div class="receipt-items">
+          <div class="item-row header">
+            <span class="item-name">ITEM</span>
+            <span class="item-qty">QTY</span>
+            <span class="item-price">AMT</span>
+          </div>
+          <div v-for="(item, index) in currentOrder.items" :key="index" class="item-row">
+            <span class="item-name">{{ item.productName || ('Product #' + item.productId) }}</span>
+            <span class="item-qty">x{{ item.quantity }}</span>
+            <span class="item-price">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+          </div>
         </div>
         
-        <ul class="receipt-items" v-else>
-          <li v-for="(item, index) in currentOrder.items" :key="index">
-            <div class="item-name">{{ item.productName || '商品' + item.productId }}</div>
-            <div class="item-calc">
-              <span>{{ item.quantity }} x ￥{{ item.price?.toFixed(2) }}</span>
-              <span class="item-total">￥{{ (item.price * item.quantity).toFixed(2) }}</span>
-            </div>
-          </li>
-        </ul>
+        <div class="receipt-divider"></div>
         
-        <el-divider border-style="dashed" />
         <div class="receipt-total">
-          <span>实付金额</span>
-          <span class="total-price">￥{{ currentOrder.totalPrice?.toFixed(2) }}</span>
+          <div class="total-row">
+            <span>TOTAL</span>
+            <span class="total-amount">¥{{ currentOrder.totalPrice?.toFixed(2) }}</span>
+          </div>
+          <div class="points-row" v-if="currentOrder.points">
+            <span>POINTS EARNED</span>
+            <span>+{{ currentOrder.points }}</span>
+          </div>
+          <div class="points-row" v-if="currentOrder.memberId">
+            <span>MEMBER ID</span>
+            <span>{{ currentOrder.memberId }}</span>
+          </div>
+        </div>
+        
+        <div class="receipt-footer">
+          <p>THANK YOU</p>
+          <button class="minimal-btn print-btn" @click="dialogVisible = false">CLOSE</button>
         </div>
       </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">关闭</el-button>
-          <el-button type="primary" @click="printReceipt">
-            打印小票
-          </el-button>
-        </span>
-      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
-import * as XLSX from 'xlsx' // 需要安装 xlsx 库
+import request from '@/utils/request'
+import dayjs from 'dayjs'
+import * as XLSX from 'xlsx'
 
-const orderList = ref([])
-const loading = ref(false)
+const list = ref([])
 const selectedOrders = ref([])
-
-// 详情弹窗相关状态
+const role = localStorage.getItem('role')
+const storeId = ref('')
 const dialogVisible = ref(false)
-const detailLoading = ref(false)
 const currentOrder = ref(null)
+const detailLoading = ref(false)
 
-// 获取订单列表
-const fetchOrders = async () => {
-  loading.value = true
+const load = async () => {
   try {
-    const res = await request.get('/order/list')
-    // 处理后端返回的数据结构（支持直接返回数组或带包装的数据）
-    orderList.value = Array.isArray(res.data) ? res.data : (res.data?.list || res.data?.records || [])
+    const res = await request.get('/order/list', {
+      params: { storeId: storeId.value }
+    })
+    list.value = res.data || []
   } catch (e) {
-    console.error(e)
-    ElMessage.error('获取订单列表失败')
-  } finally {
-    loading.value = false
+    console.error('Failed to load orders', e)
   }
 }
 
-// 过滤出有效订单（总额大于0的订单），因为 0 元订单通常是用来查询积分的假订单
+// 过滤出有效订单（总额大于0的订单）
 const validOrderList = computed(() => {
-  return orderList.value.filter(order => order.totalPrice && order.totalPrice > 0)
+  return list.value.filter(order => order.totalPrice && order.totalPrice > 0)
 })
 
 // 监听表格勾选事件
@@ -179,78 +212,45 @@ const selectedAmountSum = computed(() => {
 
 // 导出 Excel 功能
 const exportExcel = () => {
-  // 如果有选中的订单，就导出选中的；否则导出列表里所有的有效订单
   const dataToExport = selectedOrders.value.length > 0 ? selectedOrders.value : validOrderList.value
   
   if (dataToExport.length === 0) {
-    ElMessage.warning('没有可导出的订单数据')
+    ElMessage.warning('没有可导出的订单数据 / No data to export')
     return
   }
 
-  // 1. 格式化要导出的数据，让表头更清晰
   const excelData = dataToExport.map(order => ({
-    '订单号': order.id,
-    '下单时间': order.createTime,
-    '会员ID': order.memberId || '散客',
-    '订单金额(元)': order.totalPrice,
-    '获得积分': order.points,
-    '状态': '已完成'
+    '订单号 (Order ID)': order.id,
+    '下单时间 (Time)': dayjs(order.createTime).format('YYYY-MM-DD HH:mm:ss'),
+    '会员ID (Member)': order.memberId || '散客 (Guest)',
+    '订单金额 (Amount)': order.totalPrice,
+    '获得积分 (Points)': order.points,
+    '状态 (Status)': '已完成 (Completed)'
   }))
 
-  // 2. 将数据转换为工作表
   const worksheet = XLSX.utils.json_to_sheet(excelData)
-  
-  // 3. 创建一个新的工作簿并添加工作表
   const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, '订单数据')
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders')
   
-  // 4. 生成 Excel 文件并下载
-  const dateStr = new Date().toISOString().slice(0, 10)
+  const dateStr = dayjs().format('YYYYMMDD')
   const fileName = selectedOrders.value.length > 0 
-    ? `已选订单导出_${dateStr}.xlsx` 
-    : `全部订单导出_${dateStr}.xlsx`
+    ? `Selected_Orders_${dateStr}.xlsx` 
+    : `All_Orders_${dateStr}.xlsx`
     
   XLSX.writeFile(workbook, fileName)
-  ElMessage.success('导出成功！')
+  ElMessage.success('导出成功 / Export successful!')
 }
 
-// 格式化收银员名称：提取账号中的英文字母部分
-const formatCashierName = (account) => {
-  // 如果后端完全没有返回任何收银员相关的字段，我们直接用当前登录的账号兜底
-  if (!account) {
-    const loginUser = localStorage.getItem('username') || localStorage.getItem('userAccount') || '自助'
-    const match = loginUser.match(/^[a-zA-Z]+/)
-    return match ? match[0] : loginUser
-  }
-  // 如果有账号，使用正则提取纯英文字母部分
-  const match = account.match(/^[a-zA-Z]+/)
-  return match ? match[0] : account
-}
-
-// 查看订单详情
 const viewDetail = async (row) => {
-  // 因为列表里可能没有 cashierAccount 字段，我们需要看看能不能从其它地方获取
-  // 如果后端列表返回了 cashierAccount，就用它；否则尝试从 localStorage 里拿当前登录的人兜底（虽然不一定准）
-  currentOrder.value = { 
-    ...row,
-    // 如果 row 里没有收银员信息，暂时留空，或者您也可以让后端在 /order/list 接口里加上 cashierAccount
-  } 
+  currentOrder.value = { ...row } 
   dialogVisible.value = true
   
-    // 检查当前行有没有商品明细数组
   if (!row.items || row.items.length === 0) {
-    // 如果列表接口没返回商品明细，尝试去请求后端的详情接口
     detailLoading.value = true
     try {
-      // 尝试两种传参方式：id 和 orderId，因为我不确定您后端用的是哪个参数名
       const res = await request.get(`/order/detail`, { params: { orderId: row.id, id: row.id } })
       
-      // 兼容两种返回格式：
-      // 1. res.data.items (如果您在后端是直接把明细放在 items 属性里)
-      // 2. res.data 本身就是个数组 (如果您在后端是直接返回 List<OrderItem>)
-      // 3. 兼容后端可能返回的统一 Result 对象格式: res.data.data.items 或 res.data.data
       let detailItems = []
-      
       const realData = res.data?.data || res.data
       
       if (Array.isArray(realData)) {
@@ -260,74 +260,243 @@ const viewDetail = async (row) => {
       }
 
       if (detailItems.length > 0) {
-        // 补充一下后端新返回的商品名字，因为后端返回的可能是 productId 而不是 productName
-        currentOrder.value.items = detailItems.map(item => {
-          return {
-            ...item,
-            productName: item.productName || `商品 (ID: ${item.productId})`
-          }
-        })
+        currentOrder.value.items = detailItems
       } else {
-        // 如果虽然请求成功了，但后端返回的 items 是空的，为了防止报错，给个空数组
-        currentOrder.value.items = []
+        currentOrder.value.items = [{
+          productId: 'N/A',
+          productName: 'Item info unavailable',
+          quantity: 1,
+          price: row.totalPrice || 0
+        }]
       }
     } catch (e) {
-      console.warn('获取订单明细失败', e)
-      ElMessage.error(e.response?.data?.message || '获取订单明细失败，请检查后端服务')
+      console.error(e)
     } finally {
       detailLoading.value = false
     }
   }
 }
 
-// 打印小票
-const printReceipt = () => {
-  ElMessage.success('发送打印指令成功！')
-  // 真实场景下这里会调用打印机 API
-}
-
 onMounted(() => {
-  fetchOrders()
+  load()
 })
 </script>
 
 <style scoped>
-.order-management-container {
-  padding: 20px;
-}
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
-.stat-cards {
-  margin-bottom: 20px;
-}
-.stat-card {
-  text-align: center;
-  padding: 10px 0;
-}
-.stat-title {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 10px;
-}
-.stat-value {
-  font-size: 24px;
-  font-weight: bold;
-}
-.stat-value.highlight {
-  color: #f56c6c;
+.page-container {
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 订单详情弹窗的小票样式 */
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 60px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--w-text);
+}
+
+.stat-overview {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 40px;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--w-border);
+}
+
+.stat-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--w-border);
+}
+
+.stat-box:last-of-type {
+  border-right: none;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--w-text-gray);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.stat-value.highlight {
+  color: #ff3b30;
+}
+
+.stat-actions {
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+}
+
+.en-text {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.display-title {
+  margin: 0;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.cn-title {
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+.en-title {
+  font-size: 64px;
+  letter-spacing: -2px;
+  color: var(--w-text-gray);
+  opacity: 0.3;
+}
+
+.sub-text {
+  font-size: 14px;
+  color: var(--w-text-gray);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-left: 4px;
+}
+
+.minimal-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.minimal-select {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--w-border);
+  padding: 8px 24px 8px 0;
+  font-family: 'Helvetica Neue', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--w-text);
+  outline: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px auto;
+}
+
+.minimal-select:focus {
+  border-bottom-color: var(--w-text);
+}
+
+.id-text, .mono-text {
+  font-family: 'Helvetica Neue', monospace;
+  color: var(--w-text-gray);
+  font-size: 14px;
+}
+
+.price-text {
+  font-family: 'Helvetica Neue', monospace;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.points-text {
+  font-family: 'Helvetica Neue', monospace;
+  color: #34c759;
+  font-weight: 600;
+}
+
+.member-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  background: var(--w-hover-bg);
+  color: var(--w-text);
+}
+
+.minimal-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border: 1px solid var(--w-border);
+}
+
+.minimal-tag.success {
+  color: #34c759;
+  border-color: #34c759;
+}
+
+.minimal-btn {
+  background: transparent;
+  border: 1px solid var(--w-text);
+  color: var(--w-text);
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.minimal-btn:hover {
+  background: var(--w-text);
+  color: var(--w-bg);
+}
+
+/* 极简小票样式 */
+:deep(.minimal-dialog) {
+  background: var(--w-bg);
+  border: 1px solid var(--w-border);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  border-radius: 0;
+}
+
+:deep(.el-dialog__header) {
+  padding: 20px 20px 0;
+  margin-right: 0;
+}
+
+:deep(.el-dialog__title) {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
 .receipt-card {
   padding: 10px;
+  font-family: 'Helvetica Neue', monospace;
+  color: var(--w-text);
 }
 
 .receipt-header {
@@ -336,80 +505,94 @@ onMounted(() => {
 }
 
 .receipt-header h3 {
-  margin: 0 0 5px 0;
+  margin: 0 0 5px;
   font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
-.receipt-header p {
+.receipt-store {
   margin: 0;
-  color: #606266;
-  font-size: 14px;
+  font-size: 12px;
+  color: var(--w-text-gray);
+  text-transform: uppercase;
 }
 
-.receipt-time {
-  font-size: 12px !important;
-  color: #909399 !important;
-  margin-top: 5px !important;
+.receipt-divider {
+  height: 2px;
+  background: var(--w-text);
+  margin: 15px 0;
 }
 
-.receipt-info {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 15px;
+.receipt-divider.dashed {
+  height: 1px;
+  background: transparent;
+  border-top: 1px dashed var(--w-border);
 }
 
 .info-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.no-items-tip {
-  text-align: center;
-  color: #909399;
   font-size: 12px;
-  padding: 20px 0;
-  font-style: italic;
+  margin-bottom: 8px;
+  color: var(--w-text-gray);
 }
 
-.receipt-items {
-  list-style: none;
-  padding: 0;
-  margin: 15px 0;
-}
-
-.receipt-items li {
-  margin-bottom: 10px;
-}
-
-.item-name {
-  font-weight: 500;
-  margin-bottom: 2px;
-  font-size: 14px;
-}
-
-.item-calc {
+.item-row {
   display: flex;
   justify-content: space-between;
   font-size: 13px;
-  color: #909399;
+  margin-bottom: 12px;
 }
 
-.item-total {
-  color: #303133;
+.item-row.header {
+  font-size: 10px;
+  color: var(--w-text-gray);
+  margin-bottom: 15px;
 }
+
+.item-name { flex: 2; }
+.item-qty { flex: 1; text-align: center; }
+.item-price { flex: 1; text-align: right; }
 
 .receipt-total {
+  margin-top: 20px;
+}
+
+.total-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
-.total-price {
-  color: #f56c6c;
-  font-size: 20px;
+.total-amount {
+  font-size: 24px;
+}
+
+.points-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--w-text-gray);
+  margin-bottom: 5px;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.receipt-footer p {
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.print-btn {
+  width: 100%;
+  padding: 12px;
 }
 </style>

@@ -1,100 +1,91 @@
 <template>
-  <div class="product-page">
+  <div class="product-page page-container">
     <div class="page-header">
       <div class="header-left">
-        <h2>商品定价与促销</h2>
-        <span class="sub-text">管理全店商品价格策略</span>
+        <h2 class="display-title">
+          <span class="cn-title">商品定价</span>
+          <span class="en-title">/ Products.</span>
+        </h2>
+        <span class="sub-text">Management & Pricing</span>
       </div>
       <div class="header-right">
-        <el-tag v-if="role === 'HQ'" type="success" effect="dark" size="large">总部权限</el-tag>
-        <el-tag v-else type="warning" effect="dark" size="large">门店视图</el-tag>
+        <span class="role-indicator">{{ role === 'HQ' ? 'HQ Access' : 'Store View' }}</span>
       </div>
     </div>
 
-    <el-card shadow="never" class="table-card">
+    <div class="table-container">
       <el-table 
         :data="list" 
-        border 
         stripe 
-        highlight-current-row
-        :header-cell-style="{ background: '#f5f7fa', color: '#606266', fontWeight: 'bold' }"
         style="width: 100%"
       >
-        <el-table-column prop="id" label="商品编号" width="100" align="center">
+        <el-table-column prop="id" label="编号 / ID" width="120" align="left">
           <template #default="{ row }">
-            <el-tag type="info">{{ row.id }}</el-tag>
+            <span class="id-text">#{{ String(row.id).padStart(4, '0') }}</span>
           </template>
         </el-table-column>
         
-        <el-table-column prop="name" label="商品名称" min-width="150">
+        <el-table-column prop="name" label="商品名称 / Name" min-width="200">
           <template #default="{ row }">
-            <span style="font-weight: 500">{{ row.name }}</span>
+            <span class="product-name">{{ row.name }}</span>
           </template>
         </el-table-column>
         
-        <el-table-column label="标准价格 (￥)" width="180" align="center">
+        <el-table-column label="标准价格 / Standard Price" width="220" align="right">
           <template #default="{ row }">
-            <div v-if="role === 'HQ'" class="price-input-wrapper">
-              <el-input-number 
+            <div v-if="role === 'HQ'" class="minimal-input-wrapper">
+              <span class="currency-symbol">¥</span>
+              <input 
+                type="number" 
                 v-model="row.price" 
-                :precision="2" 
-                :step="0.1" 
-                :min="0"
-                controls-position="right"
-                size="default"
-                style="width: 100%"
-                :placeholder="row.price === 0 ? '设置价格' : ''"
+                class="minimal-input"
+                step="0.1"
+                min="0"
+                :placeholder="row.price === 0 ? '0.00' : ''"
               />
             </div>
-            <span v-else class="price-text">￥{{ row.price.toFixed(2) }}</span>
+            <span v-else class="price-text">¥ {{ row.price.toFixed(2) }}</span>
           </template>
         </el-table-column>
         
-        <el-table-column label="促销价格 (￥)" width="180" align="center">
+        <el-table-column label="促销价格 / Promo Price" width="220" align="right">
           <template #default="{ row }">
-            <div v-if="role === 'HQ'" class="price-input-wrapper">
-              <el-input-number 
+            <div v-if="role === 'HQ'" class="minimal-input-wrapper">
+              <span class="currency-symbol promo-symbol">¥</span>
+              <input 
+                type="number" 
                 v-model="row.promoPrice" 
-                :precision="2" 
-                :step="0.1" 
-                :min="0"
-                controls-position="right"
-                size="default"
-                style="width: 100%"
+                class="minimal-input promo-input"
+                step="0.1"
+                min="0"
+                placeholder="-"
               />
             </div>
             <span v-else class="price-text promo">
-              {{ row.promoPrice ? '￥' + row.promoPrice.toFixed(2) : '-' }}
+              {{ row.promoPrice ? '¥ ' + row.promoPrice.toFixed(2) : '-' }}
             </span>
           </template>
         </el-table-column>
         
-        <el-table-column v-if="role === 'HQ'" label="操作" width="120" align="center" fixed="right">
+        <el-table-column v-if="role === 'HQ'" label="操作 / Action" width="180" align="right">
           <template #default="{ row }">
-            <el-button 
-              type="primary" 
-              size="small" 
-              @click="save(row)" 
-              plain
-            >
-              {{ row.price === 0 ? '初始化' : '保存修改' }}
-            </el-button>
+            <button class="minimal-btn" @click="save(row)">
+              {{ row.price === 0 ? '初始化 INIT' : '保存 SAVE' }}
+            </button>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { getProductList, updateProduct } from '@/api/product'
-import { getInventoryList } from '@/api/inventory'
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 
 const list = ref([])
 const role = localStorage.getItem('role')
-const storeId = Number(localStorage.getItem('storeId')) || 1
 
 const load = async () => {
   try {
@@ -102,7 +93,7 @@ const load = async () => {
     list.value = res.data || []
   } catch (e) {
     console.error('加载商品列表失败', e)
-    ElMessage.error('加载失败')
+    ElMessage.error('Failed to load products')
   }
 }
 
@@ -110,9 +101,9 @@ const save = async (row) => {
   try {
     await updateProduct(row)
     row.isNew = false
-    ElMessage.success('价格修改成功')
+    ElMessage.success('Price updated')
   } catch (e) {
-    ElMessage.error('修改失败')
+    ElMessage.error('Update failed')
   }
 }
 
@@ -122,63 +113,146 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.product-page {
-  /* padding: 20px; 已由外层 content-wrapper 提供 padding，这里不再需要 */
+.page-container {
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-end;
+  margin-bottom: 60px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 2px solid var(--w-text);
 }
 
-.header-left h2 {
+.display-title {
   margin: 0;
-  font-size: 24px;
-  color: #303133;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.cn-title {
+  font-size: 36px;
+  letter-spacing: 2px;
+}
+
+.en-title {
+  font-size: 64px;
+  letter-spacing: -2px;
+  color: var(--w-text-gray);
+  opacity: 0.3;
 }
 
 .sub-text {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 5px;
-  display: block;
+  font-size: 14px;
+  color: var(--w-text-gray);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-left: 4px;
 }
 
-.table-card {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+.role-indicator {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 16px;
+  border: 1px solid var(--w-text);
+}
+
+.id-text {
+  font-family: 'Helvetica Neue', monospace;
+  color: var(--w-text-gray);
+  font-size: 14px;
+}
+
+.product-name {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
 }
 
 .price-text {
-  font-family: Monaco, monospace;
-  font-weight: bold;
-  color: #606266;
+  font-family: 'Helvetica Neue', monospace;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .price-text.promo {
-  color: #f56c6c;
+  color: #ff3b30;
 }
 
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  
-  .header-right {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-  }
-  
-  /* 表格内边距调整 */
-  :deep(.el-table .cell) {
-    padding: 0 8px;
-  }
+/* 极简输入框 */
+.minimal-input-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--w-border);
+  transition: border-color 0.3s ease;
+}
+
+.minimal-input-wrapper:focus-within {
+  border-color: var(--w-text);
+}
+
+.currency-symbol {
+  font-size: 14px;
+  color: var(--w-text-gray);
+  margin-right: 8px;
+}
+
+.promo-symbol {
+  color: #ff3b30;
+  opacity: 0.5;
+}
+
+.minimal-input {
+  width: 80px;
+  border: none;
+  background: transparent;
+  font-family: 'Helvetica Neue', monospace;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: right;
+  padding: 8px 0;
+  outline: none;
+  color: var(--w-text);
+}
+
+.minimal-input.promo-input {
+  color: #ff3b30;
+}
+
+/* 去除输入框上下箭头 */
+.minimal-input::-webkit-outer-spin-button,
+.minimal-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.minimal-btn {
+  background: transparent;
+  border: 1px solid var(--w-text);
+  color: var(--w-text);
+  padding: 8px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.minimal-btn:hover {
+  background: var(--w-text);
+  color: var(--w-bg);
 }
 </style>

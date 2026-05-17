@@ -82,4 +82,14 @@ public interface AnalysisMapper {
             "GROUP BY o.store_id, category " +
             "ORDER BY o.store_id, sales DESC")
     List<Map<String, Object>> getRegionPreference();
+
+    // 5. 收银员工作情况分析 (shift_record)
+    @Select("SELECT id, store_id, cashier_username, shift_start, shift_end, " +
+            "TIMESTAMPDIFF(HOUR, shift_start, IFNULL(shift_end, NOW())) AS work_hours, " +
+            "opening_cash, closing_cash, system_cash, total_orders, " +
+            "(IFNULL(closing_cash, 0) - (IFNULL(opening_cash, 0) + IFNULL(system_cash, 0))) AS diff_cash, " +
+            "status, remark " +
+            "FROM supermarket_order.shift_record " +
+            "ORDER BY shift_start DESC")
+    List<Map<String, Object>> shiftRecordAnalysis();
 }

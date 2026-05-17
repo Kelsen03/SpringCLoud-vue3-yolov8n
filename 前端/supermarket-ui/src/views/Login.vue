@@ -1,13 +1,13 @@
 <template>
   <div class="landing-wrapper" @scroll="handleScroll">
-    <!-- 顶部导航栏 -->
-    <header class="landing-header" :class="{ 'scrolled': isScrolled }">
-      <div class="logo-area">
-        <span class="logo-icon">🛒</span>
-        <span class="logo-text">Supermarket OS</span>
+    <!-- 极简白色顶部导航栏 -->
+    <header class="minimal-header" :class="{ 'scrolled': isScrolled }">
+      <div class="brand-container">
+        <span class="logo-text">LKQ.</span>
+        <span class="sub-title">连锁超市 Retail System</span>
       </div>
       <div class="action-area">
-        <button class="header-login-btn" @click="showLogin = true">登录系统</button>
+        <button class="header-login-btn" @click="showLogin = true">Login / 登录</button>
       </div>
     </header>
 
@@ -16,15 +16,15 @@
       <div class="hero-bg"></div>
       
       <div class="hero-content fade-up">
-        <h1 class="hero-title">零售管理，<br>跃入智能世代。</h1>
+        <h1 class="hero-title">RETAIL<br>INTELLIGENCE.</h1>
         <p class="hero-subtitle">基于 Spring Cloud Alibaba 与 YOLOv8 视觉大模型构建。<br>涵盖多门店分布式库存、AI 智能收银及全链路数据洞察，为您重塑高效运营新体验。</p>
-        <button class="hero-btn" @click="showLogin = true">登录控制台</button>
+        <button class="hero-btn" @click="showLogin = true">Enter System / 进入系统</button>
       </div>
       
       <!-- 向下滚动提示 -->
       <div class="scroll-indicator">
         <div class="mouse-icon"></div>
-        <span>向下滚动探索更多</span>
+        <span>SCROLL DOWN</span>
       </div>
     </section>
 
@@ -32,7 +32,8 @@
     <section class="section feature-section light-section">
       <div class="feature-container">
         <div class="feature-text reveal">
-          <h2 class="feature-title">毫秒级 AI 视觉收银</h2>
+          <h2 class="feature-title">AI VISION<br>CHECKOUT.</h2>
+          <h3 class="feature-cn-title">毫秒级视觉收银</h3>
           <p class="feature-desc">告别传统低效扫码。系统深度集成 YOLOv8 目标检测算法与 OpenCV 图像处理技术，实现商品精准识别与一键无感结算。内置严密的员工交接班盲盘对账机制，让门店前台运营如丝般顺滑且滴水不漏。</p>
         </div>
         <div class="feature-image-wrapper reveal-delay">
@@ -45,7 +46,8 @@
     <section class="section feature-section gray-section">
       <div class="feature-container reverse">
         <div class="feature-text reveal">
-          <h2 class="feature-title">全局库存与智能调拨</h2>
+          <h2 class="feature-title">GLOBAL<br>INVENTORY.</h2>
+          <h3 class="feature-cn-title">全局库存与智能调拨</h3>
           <p class="feature-desc">依托云原生微服务架构，完美实现多门店物理数据隔离与逻辑统一。支持总部强制补货下发与门店间双向借货审批流，辅以底层原子级库存扣减与 FIFO 效期预警机制，彻底告别库存积压与断货危机。</p>
         </div>
         <div class="feature-image-wrapper reveal-delay">
@@ -58,7 +60,8 @@
     <section class="section footer-section light-section">
       <div class="data-feature">
         <div class="feature-text text-center reveal">
-          <h2 class="feature-title">全景商业数据罗盘</h2>
+          <h2 class="feature-title">DATA<br>DASHBOARD.</h2>
+          <h3 class="feature-cn-title" style="margin-bottom: 24px;">全景商业数据罗盘</h3>
           <p class="feature-desc" style="max-width: 800px; margin: 0 auto;">无缝集成 ECharts 可视化引擎，实时聚合各门店营业额、客单价与热销商品排行。多维度穿透分析商业数据，助您精准洞察市场脉搏，驱动科学商业决策。</p>
         </div>
         <img class="data-image reveal-delay" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="Data Analysis Dashboard" />
@@ -66,15 +69,15 @@
 
       <footer class="apple-footer">
         <div class="footer-content">
-          <div class="footer-left">Copyright © 2026 Supermarket Inc. 保留所有权利。</div>
+          <div class="footer-left">Copyright © 2026 LKQ. All rights reserved.</div>
           <div class="footer-links">
-            <a href="#" class="footer-link">隐私政策</a>
+            <a href="#" class="footer-link">Privacy Policy</a>
             <span class="divider">|</span>
-            <a href="#" class="footer-link">使用条款</a>
+            <a href="#" class="footer-link">Terms of Use</a>
             <span class="divider">|</span>
-            <a href="#" class="footer-link">法律信息</a>
+            <a href="#" class="footer-link">Legal</a>
           </div>
-          <div class="footer-right">中国大陆</div>
+          <div class="footer-right">Mainland China</div>
         </div>
       </footer>
     </section>
@@ -92,26 +95,26 @@
               <button class="close-btn" @click="showLogin = false">✕</button>
               
               <div class="modal-header">
-                <h2 class="modal-title">登录系统</h2>
-                <p class="modal-subtitle">欢迎回来，请输入您的账号密码继续</p>
+                <h2 class="modal-title">Log in.</h2>
+                <p class="modal-subtitle">Welcome back to Supermarket OS</p>
               </div>
               
               <form class="login-form" @submit.prevent="login">
                 <div class="apple-input-group" :class="{ 'has-value': username }">
-                  <label class="apple-floating-label">用户名</label>
+                  <label class="apple-floating-label">Username / 用户名</label>
                   <input type="text" v-model="username" class="premium-input" required />
                 </div>
-                <div class="apple-input-group" :class="{ 'has-value': password }" style="margin-top: 16px;">
-                  <label class="apple-floating-label">密码</label>
+                <div class="apple-input-group" :class="{ 'has-value': password }" style="margin-top: 24px;">
+                  <label class="apple-floating-label">Password / 密码</label>
                   <input type="password" v-model="password" class="premium-input" required />
                 </div>
                 
                 <button type="submit" class="submit-btn" :disabled="loading">
-                  {{ loading ? '登录中...' : '继续' }}
+                  {{ loading ? 'VERIFYING...' : 'CONTINUE / 继续' }}
                 </button>
                 
                 <div class="register-link">
-                  <a href="#" @click.prevent="isFlipped = true">创建收银员账号 ↗</a>
+                  <a href="#" @click.prevent="isFlipped = true">CREATE ACCOUNT / 注册账号 ↗</a>
                 </div>
               </form>
             </div>
@@ -121,21 +124,21 @@
               <button class="close-btn" @click="showLogin = false">✕</button>
               
               <div class="modal-header" style="margin-bottom: 24px;">
-                <h2 class="modal-title">创建账号</h2>
-                <p class="modal-subtitle">加入我们，开启智能零售体验</p>
+                <h2 class="modal-title">Sign up.</h2>
+                <p class="modal-subtitle">Create your cashier account</p>
               </div>
               
               <el-form class="login-form" :model="regForm" :rules="regRules" ref="regFormRef" @submit.prevent>
                 <el-form-item prop="name">
                   <div class="apple-input-group" :class="{ 'has-value': regForm.name }">
-                    <label class="apple-floating-label">姓名全拼 (如: lkq)</label>
+                    <label class="apple-floating-label">Name / 姓名拼音 (如: lkq)</label>
                     <input type="text" v-model="regForm.name" class="premium-input" @input="generateUsername" required />
                   </div>
                 </el-form-item>
 
                 <el-form-item prop="storeId">
                   <div class="apple-input-group has-value">
-                    <label class="apple-floating-label" style="top: 16px; font-size: 12px;">所在门店</label>
+                    <label class="apple-floating-label" style="top: 16px; font-size: 12px;">Store / 所在门店</label>
                     <el-select v-model="regForm.storeId" placeholder=" " @change="generateUsername" style="width: 100%;">
                       <el-option label="1号店 (总店)" value="1" />
                       <el-option label="2号店 (分店)" value="2" />
@@ -146,30 +149,30 @@
                 
                 <el-form-item prop="password">
                   <div class="apple-input-group" :class="{ 'has-value': regForm.password }">
-                    <label class="apple-floating-label">密码</label>
+                    <label class="apple-floating-label">Password / 密码</label>
                     <input type="password" v-model="regForm.password" class="premium-input" required />
                   </div>
                 </el-form-item>
 
                 <el-form-item prop="confirmPassword">
                   <div class="apple-input-group" :class="{ 'has-value': regForm.confirmPassword }">
-                    <label class="apple-floating-label">确认密码</label>
+                    <label class="apple-floating-label">Confirm / 确认密码</label>
                     <input type="password" v-model="regForm.confirmPassword" class="premium-input" required />
                   </div>
                 </el-form-item>
 
                 <div class="account-preview" v-if="regForm.username">
                   <div class="apple-alert">
-                    <div class="alert-title">分配账号: <strong>{{ regForm.username }}</strong></div>
+                    <div class="alert-title">YOUR ACCOUNT / 您的账号: <strong>{{ regForm.username }}</strong></div>
                   </div>
                 </div>
 
                 <button type="button" class="submit-btn" :disabled="regLoading" @click="handleRegister" style="margin-top: 8px;">
-                  {{ regLoading ? '注册中...' : '注册' }}
+                  {{ regLoading ? 'CREATING...' : 'CREATE ACCOUNT / 注册' }}
                 </button>
 
                 <div class="register-link">
-                  <a href="#" @click.prevent="isFlipped = false">已有账号？返回登录 ↗</a>
+                  <a href="#" @click.prevent="isFlipped = false">BACK TO LOGIN / 返回登录 ↗</a>
                 </div>
               </el-form>
             </div>
@@ -353,6 +356,7 @@ const handleRegister = async () => {
 .landing-wrapper {
   height: 100vh;
   overflow-y: scroll;
+  overflow-x: hidden; /* 修复由于某些内容过宽导致无法向下滚动的问题 */
   /* 启用原生的滚动吸附，实现一页一页丝滑滑动 */
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
@@ -363,6 +367,7 @@ const handleRegister = async () => {
 /* 每一屏的基础样式 */
 .section {
   height: 100vh;
+  min-height: 100vh; /* 确保最小高度 */
   width: 100%;
   scroll-snap-align: start;
   position: relative;
@@ -752,7 +757,7 @@ const handleRegister = async () => {
 .apple-input-group {
   position: relative;
   width: 100%;
-  height: 56px;
+  height: 64px; /* 加高输入框以显得更大气 */
   background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -763,28 +768,32 @@ const handleRegister = async () => {
 }
 
 .apple-input-group:focus-within {
-  border-color: #0a84ff;
+  border-color: #000000; /* 极简黑白灰，不用蓝色了 */
   background-color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
 .apple-floating-label {
   position: absolute;
-  left: 16px;
+  left: 20px;
   top: 50%;
   transform: translateY(-50%);
   color: #98989d;
-  font-size: 17px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
   pointer-events: none;
-  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 10;
 }
 
 .apple-input-group:focus-within .apple-floating-label,
 .apple-input-group.has-value .apple-floating-label {
-  top: 16px;
-  font-size: 12px;
-  color: #86868b;
+  top: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .premium-input {
@@ -792,8 +801,9 @@ const handleRegister = async () => {
   height: 100%;
   background-color: transparent;
   border: none;
-  padding: 18px 16px 0 16px; 
-  font-size: 17px;
+  padding: 24px 20px 0 20px; 
+  font-size: 18px;
+  font-weight: 500;
   color: #1d1d1f;
   box-sizing: border-box;
   outline: none;
@@ -832,32 +842,36 @@ const handleRegister = async () => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
+  padding: 16px;
+  margin-top: 16px;
   text-align: center;
 }
 .alert-title {
   font-size: 14px;
+  font-weight: 500;
   color: #1d1d1f;
 }
 
 /* 提交按钮 */
 .submit-btn {
   width: 100%;
-  height: 52px;
-  margin-top: 24px;
-  background: #0a84ff;
+  height: 64px;
+  margin-top: 32px;
+  background: #000000; /* 黑白灰极简 */
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 17px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .submit-btn:hover {
-  background: #007aff;
-  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+  background: #333333;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 .submit-btn:disabled {
   background: #86868b;
@@ -870,13 +884,16 @@ const handleRegister = async () => {
   margin-top: 24px;
 }
 .register-link a {
-  color: #0a84ff;
+  color: #000000;
   text-decoration: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: opacity 0.3s ease;
 }
 .register-link a:hover {
-  text-decoration: underline;
+  opacity: 0.6;
 }
 
 /* Vue 弹窗动画 */

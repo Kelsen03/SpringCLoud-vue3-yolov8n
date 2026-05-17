@@ -119,7 +119,6 @@ public class InventoryController {
             toInv.setWarningStock(10); // 默认预警阈值
 
             // 【核心修复】复制源商品的元数据（生产日期、保质期、名称）
-            // 只有加上这三行，调拨过去的商品日期才会和原来的一致！
             toInv.setProductName(fromInv.getProductName());
             toInv.setProductionDate(fromInv.getProductionDate());
             toInv.setShelfLifeMonths(fromInv.getShelfLifeMonths());
@@ -130,30 +129,13 @@ public class InventoryController {
             int oldStock = toInv.getStock();
             toInv.setStock(oldStock + count);
 
-            // 【高级逻辑】处理生产日期不一致的情况 (模拟FIFO显示)
             if (fromInv.getProductionDate() != null) {
-                // 如果调入的是新货（日期晚于现有库存），且当前库存还有货
                 if (toInv.getProductionDate() != null && fromInv.getProductionDate().isAfter(toInv.getProductionDate())) {
-                    // 此时不更新日期，保持旧日期（让旧货先卖）。
-                    // 但我们需要记录一个“虚拟批次”标记（这里简化处理，仅做注释说明逻辑）
-                    // 实际逻辑：当旧货（oldStock）卖完时，系统应自动更新日期。
-                    // 由于没有批次表，我们利用一个暂存字段或备注来记录（这里假设Inventory表有扩展字段或逻辑支持，
-                    // 若无，则只能维持“显示较旧日期”的安全策略，直到再次人工盘点或调拨更新）。
-                    
-                    // 当前策略：保持显示旧日期（符合“就低不就高”原则）。
-                    // 当未来某次库存扣减导致 quantity <= count (即旧货卖完了) 时，
-                    // 理论上应该触发日期更新。但由于HTTP无状态且无批次表，
-                    // 无法自动精确做到“卖完瞬间变日期”。
-                    
-                    // 妥协方案：不做任何日期变更，维持 toInv 原有的旧日期。
-                } 
-                // 如果调入的是旧货（日期早于现有库存）
-                else if (toInv.getProductionDate() == null || fromInv.getProductionDate().isBefore(toInv.getProductionDate())) {
-                    // 必须更新为更早的日期（安全第一）
+                    // do nothing
+                } else if (toInv.getProductionDate() == null || fromInv.getProductionDate().isBefore(toInv.getProductionDate())) {
                     toInv.setProductionDate(fromInv.getProductionDate());
                 }
             }
-            
             inventoryMapper.updateById(toInv);
         }
 

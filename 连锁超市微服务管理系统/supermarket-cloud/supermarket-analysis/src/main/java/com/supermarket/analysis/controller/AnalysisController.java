@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/analysis")
@@ -30,7 +31,6 @@ public class AnalysisController {
     @GetMapping("/replenish/recommend")
     public List<Map<String, Object>> replenishRecommend() {
         List<Map<String, Object>> list = analysisMapper.replenishRecommend();
-        // Java 层 ABC 分类：销量>均值1.5倍=A, 0.5~1.5=B, <0.5=C
         double avg = list.stream()
             .filter(m -> m.get("total_sales") != null)
             .mapToDouble(m -> ((Number) m.get("total_sales")).doubleValue())
@@ -44,7 +44,6 @@ public class AnalysisController {
             else { cls = "C"; factor = 0.5; }
             m.put("abc_class", cls);
             m.put("abc_factor", factor);
-            // 加权推荐量
             Number qty = (Number) m.get("recommend_qty");
             if (qty != null && qty.doubleValue() > 0) {
                 m.put("recommend_qty", Math.round(qty.doubleValue() * factor));
@@ -53,13 +52,13 @@ public class AnalysisController {
         return list;
     }
 
-    @GetMapping("/replenish")
-    public List<?> replenishSuggest() {
-        return analysisMapper.replenishSuggest();
-    }
-
-    @GetMapping("/regionPreference")
+    @GetMapping("/preference")
     public List<?> getRegionPreference() {
         return analysisMapper.getRegionPreference();
+    }
+
+    @GetMapping("/shiftRecord")
+    public List<?> shiftRecord() {
+        return analysisMapper.shiftRecordAnalysis();
     }
 }
