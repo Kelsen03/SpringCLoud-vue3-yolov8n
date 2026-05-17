@@ -171,6 +171,12 @@ mysql -u root -p supermarket_product < product_import.sql
 
 ## 📋 更新日志
 
+### v2.2 (2026-05-17)
+- 渡边极简黑白 UI：Lenis 平滑滚动 + 自定义光标 + Landing 页面
+- 收银员排班分析：工时计算 + 备用金 + 对账差异表
+- 补货自动刷新：补货后推荐列表即时更新
+- Inventory/Product/Analysis/Transfer 统一设计语言
+
 ### v2.1 (2026-05-17)
 - 补货推荐算法 v4：频率×销量双因子 + ABC 帕累托分类
 - 库存排序：过期→临期→缺货→正常
