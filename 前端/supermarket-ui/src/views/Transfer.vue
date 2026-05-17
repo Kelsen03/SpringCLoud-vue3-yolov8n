@@ -2,20 +2,20 @@
   <div class="transfer-page">
     <div class="page-header">
       <div class="header-left">
-        <h2>库存调拨与补货</h2>
-        <span class="sub-text">处理门店间的库存流动及总部补货业务</span>
+        <h2>{{ role === 'HQ' ? '库存调拨与补货' : '店间借货与审批' }}</h2>
+        <span class="sub-text">{{ role === 'HQ' ? '处理门店间的库存流动及总部补货业务' : '向其他门店发起借货请求或处理来自其他门店的借货申请' }}</span>
       </div>
     </div>
     
     <div class="content-container">
       <el-card shadow="never" class="transfer-card">
-        <el-tabs type="card" class="custom-tabs">
-          <!-- Tab 1: 库存调拨 -->
-          <el-tab-pane label="门店间调拨">
+        <el-tabs type="card" class="custom-tabs" @tab-click="handleTabClick">
+          
+          <el-tab-pane :label="role === 'HQ' ? '直接调拨 (HQ)' : '发起借货申请'">
             <div class="form-wrapper">
               <div class="form-header">
-                <h3>🔄 库存调拨</h3>
-                <p>将库存从一个门店转移到另一个门店</p>
+                <h3>🔄 {{ role === 'HQ' ? '库存直接调拨' : '发起借货请求' }}</h3>
+                <p>{{ role === 'HQ' ? '直接将库存从一个门店转移到另一个门店' : '请求其他门店将库存调拨至本店' }}</p>
               </div>
               
               <el-form :model="transferForm" label-width="100px" label-position="top" size="large">
@@ -26,18 +26,18 @@
                 </el-form-item>
 
                 <div class="store-select-row">
-                  <el-form-item label="调出门店" style="flex: 1">
-                    <el-select v-model="transferForm.fromStore" placeholder="选择调出方" style="width: 100%">
-                      <el-option label="门店1 (北京)" :value="1" />
-                      <el-option label="门店2 (上海)" :value="2" />
-                      <el-option label="门店3 (广州)" :value="3" />
+                  <el-form-item :label="role === 'HQ' ? '调出门店' : '向哪个门店借货 (被借方)'" style="flex: 1">
+                    <el-select v-model="transferForm.fromStore" placeholder="选择出货方" style="width: 100%">
+                      <el-option label="门店1 (北京)" :value="1" :disabled="role === 'STORE' && currentStoreId === 1" />
+                      <el-option label="门店2 (上海)" :value="2" :disabled="role === 'STORE' && currentStoreId === 2" />
+                      <el-option label="门店3 (广州)" :value="3" :disabled="role === 'STORE' && currentStoreId === 3" />
                     </el-select>
                   </el-form-item>
                   
                   <div class="arrow-icon">➜</div>
 
-                  <el-form-item label="调入门店" style="flex: 1">
-                    <el-select v-model="transferForm.toStore" placeholder="选择调入方" style="width: 100%">
+                  <el-form-item :label="role === 'HQ' ? '调入门店' : '调入本门店'" style="flex: 1">
+                    <el-select v-model="transferForm.toStore" placeholder="选择调入方" style="width: 100%" :disabled="role === 'STORE'">
                       <el-option label="门店1 (北京)" :value="1" />
                       <el-option label="门店2 (上海)" :value="2" />
                       <el-option label="门店3 (广州)" :value="3" />
@@ -45,98 +45,152 @@
                   </el-form-item>
                 </div>
 
-                <el-form-item label="调拨数量">
+                <el-form-item label="调拨/借货数量">
                   <el-input-number v-model="transferForm.count" :min="1" style="width: 100%" />
                 </el-form-item>
 
                 <el-form-item style="margin-top: 30px">
-                  <el-button type="primary" style="width: 100%" @click="handleTransfer">提交调拨申请</el-button>
+                  <el-button type="primary" style="width: 100%" @click="handleTransfer">
+                    {{ role === 'HQ' ? '强制提交调拨' : '提交借货申请' }}
+                  </el-button>
                 </el-form-item>
               </el-form>
             </div>
           </el-tab-pane>
 
-          <!-- Tab 2: 门店补货 -->
-          <el-tab-pane label="总部补货">
+          <el-tab-pane label="总部补货" v-if="role === 'HQ'">
             <div class="form-wrapper">
-              <div class="form-header">
-                <h3>📦 总部补货</h3>
-                <p>总部仓库直接向门店发货</p>
-              </div>
+              <div class="form-header"><h3>总部补货</h3><p>选择商品，指定门店与数量，一键补货入库</p></div>
 
-              <el-alert
-                title="补货操作将直接增加指定门店的库存数量。"
-                type="success"
-                show-icon
-                :closable="false"
-                style="margin-bottom: 20px"
-              />
+              <el-form :model="replenishForm" label-width="90px" label-position="top" size="large">
 
-              <el-form :model="replenishForm" label-width="100px" label-position="top" size="large">
-                <el-form-item label="商品ID">
-                  <el-input v-model="replenishForm.productId" placeholder="请输入商品ID">
-                    <template #prefix>🏷️</template>
-                  </el-input>
-                </el-form-item>
-
-                <!-- 新增商品信息输入 -->
-                <div class="new-product-box">
-                  <div class="box-title">
-                    <span>✨ 新商品信息</span>
-                    <span class="box-subtitle">(仅新商品入库时填写)</span>
-                  </div>
-                  <div class="box-content">
-                    <el-form-item label="商品名称" class="compact-form-item">
-                      <el-input v-model="replenishForm.productName" placeholder="例如：可口可乐" />
-                    </el-form-item>
-                    <el-form-item label="商品类别" class="compact-form-item">
-                      <el-select v-model="replenishForm.category" placeholder="请选择类别" style="width: 100%;">
-                        <el-option label="饮料" value="饮料" />
-                        <el-option label="食品" value="食品" />
-                        <el-option label="生活用品" value="生活用品" />
-                        <el-option label="其他" value="其他" />
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item label="选择商品">
+                      <el-select v-model="replenishForm.productId" filterable placeholder="搜索商品名称或条形码" style="width:100%">
+                        <el-option v-for="p in productList" :key="p.id" :label="(p.barcode||'') + ' ' + p.name" :value="p.id">
+                          <span>{{ p.name }}</span>
+                          <span style="float:right;color:#909399;font-size:12px">{{ p.category||'未分类' }}</span>
+                        </el-option>
                       </el-select>
                     </el-form-item>
-                    <el-form-item label="生产日期" class="compact-form-item">
-                      <el-date-picker 
-                        v-model="replenishForm.productionDate" 
-                        type="date" 
-                        placeholder="选择日期" 
-                        value-format="YYYY-MM-DD"
-                        style="width: 100%;"
-                      />
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="商品名称">
+                      <el-input v-model="replenishForm.productName" placeholder="自动填充或手动输入新商品名" />
                     </el-form-item>
-                  </div>
-                </div>
+                  </el-col>
+                </el-row>
 
-                <div class="store-select-row">
-                  <el-form-item label="补货门店" style="flex: 1">
-                    <el-select 
-                      v-model="replenishForm.storeId" 
-                      placeholder="请选择 (支持多选)" 
-                      style="width: 100%"
-                      multiple
-                      collapse-tags
-                      collapse-tags-tooltip
-                    >
-                      <el-option label="门店1 (北京)" :value="1" />
-                      <el-option label="门店2 (上海)" :value="2" />
-                      <el-option label="门店3 (广州)" :value="3" />
-                      <el-option label="全部门店" :value="-1" />
-                    </el-select>
-                  </el-form-item>
+                <el-row :gutter="12">
+                  <el-col :span="8">
+                    <el-form-item label="商品类别">
+                      <el-select v-model="replenishForm.category" placeholder="选择类别" style="width:100%" filterable>
+                        <el-option v-for="c in CATEGORIES" :key="c" :label="c" :value="c" />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="保质期(月)">
+                      <el-input-number v-model="replenishForm.shelfLifeMonths" :min="1" :max="60" style="width:100%" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item label="生产日期">
+                      <el-date-picker v-model="replenishForm.productionDate" type="date" value-format="YYYY-MM-DD" style="width:100%" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
 
-                  <el-form-item label="补货数量 (每店)" style="flex: 1; margin-left: 20px;">
-                    <el-input-number v-model="replenishForm.count" :min="1" style="width: 100%" />
-                  </el-form-item>
-                </div>
+                <el-row :gutter="12">
+                  <el-col :span="12">
+                    <el-form-item label="补货门店">
+                      <el-select v-model="replenishForm.storeId" multiple collapse-tags placeholder="选择门店" style="width:100%">
+                        <el-option label="旗舰店（门店1）" :value="1" />
+                        <el-option label="社区店（门店2）" :value="2" />
+                        <el-option label="生鲜店（门店3）" :value="3" />
+                        <el-option label="全部门店" :value="-1" />
+                      </el-select>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="补货数量（每店）">
+                      <el-input-number v-model="replenishForm.count" :min="1" :max="9999" style="width:100%" />
+                    </el-form-item>
+                  </el-col>
+                </el-row>
 
-                <el-form-item style="margin-top: 20px">
-                  <el-button type="success" style="width: 100%" @click="handleReplenish">确认补货入库</el-button>
-                </el-form-item>
+                <el-button type="success" style="width:100%;margin-top:12px;height:44px;font-size:16px" @click="handleReplenish">确认补货入库</el-button>
               </el-form>
+
+              <!-- 智能补货推荐 -->
+              <el-divider />
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <h4 style="margin:0">智能补货推荐</h4>
+                <el-button size="small" type="primary" @click="loadRecommend">刷新推荐</el-button>
+              </div>
+              <el-table :data="recommendList" border stripe size="small" max-height="300">
+                <el-table-column label="商品名" min-width="120">
+                  <template #default="{row}">
+                    <span>{{ row.product_name }}</span>
+                    <el-tag v-if="row.days_to_expire < 30" type="warning" size="small" style="margin-left:4px">临期{{ row.days_to_expire }}天</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="门店" width="90">
+                  <template #default="{row}">{{ ['','旗舰店','社区店','生鲜店'][row.store_id]||row.store_id }}</template>
+                </el-table-column>
+                <el-table-column prop="stock" label="库存" width="60" />
+                <el-table-column prop="daily_sales" label="日均销量" width="75" />
+                <el-table-column label="建议补货" width="85">
+                  <template #default="{row}">
+                    <span :style="{color:row.recommend_qty>0?'#f56c6c':'#67c23a',fontWeight:'bold'}">
+                      {{ row.recommend_qty > 0 ? '+' + row.recommend_qty : '充足' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="70">
+                  <template #default="{row}">
+                    <el-button v-if="row.recommend_qty>0" size="small" type="primary" @click="quickReplenish(row)">补货</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
           </el-tab-pane>
+
+          <el-tab-pane label="调拨单记录与审批">
+            <div class="list-wrapper" style="padding: 20px;">
+              <el-button type="primary" plain @click="fetchTransferList" style="margin-bottom: 15px;">刷新列表</el-button>
+              <el-table :data="transferList" border stripe>
+                <el-table-column prop="id" label="单号" width="80" />
+                <el-table-column prop="createTime" label="时间" width="160" />
+                <el-table-column prop="productId" label="商品ID" width="80" />
+                <el-table-column label="方向" width="150">
+                  <template #default="{ row }">
+                    店{{ row.fromStore }} ➜ 店{{ row.toStore }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quantity" label="数量" width="80" />
+                <el-table-column prop="status" label="状态" min-width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="160" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <div v-if="row.status === 'PENDING' && (role === 'HQ' || currentStoreId === row.fromStore)">
+                      <el-button size="small" type="success" @click="handleApprove(row.id)">同意</el-button>
+                      <el-button size="small" type="danger" @click="handleReject(row.id)">拒绝</el-button>
+                    </div>
+                    <span v-else-if="row.status === 'PENDING' && currentStoreId === row.toStore" style="color:#909399; font-size:13px;">
+                      等待对方审批
+                    </span>
+                    <span v-else style="color:#c0c4cc; font-size:13px;">无</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-tab-pane>
+
         </el-tabs>
       </el-card>
     </div>
@@ -144,30 +198,76 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
-import { transferStock, replenishStock, replenishNewStock } from '@/api/inventory'
-import { getProductById } from '@/api/product'
+import { reactive, watch, ref, onMounted } from 'vue'
+import { transferStock, replenishNewStock, requestTransfer, approveTransfer, rejectTransfer, getTransferList } from '@/api/inventory'
+import { getProductList } from '@/api/product'
+import { getReplenishRecommend } from '@/api/analysis'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 调拨表单
+const role = ref(localStorage.getItem('role'))
+const currentStoreId = Number(localStorage.getItem('storeId')) || 1
+
 const transferForm = reactive({
   productId: 1,
-  fromStore: 1,
-  toStore: 2,
+  fromStore: role.value === 'STORE' ? (currentStoreId === 1 ? 2 : 1) : 1, // 如果是STORE，默认被借方不是自己
+  toStore: role.value === 'STORE' ? currentStoreId : 2, // 如果是STORE，借入方永远是自己
   count: 10
 })
 
-// 补货表单 (升级版)
 const replenishForm = reactive({
   productId: '',
-  storeId: [1], // 默认为数组，方便多选
-  count: 100,
-  productName: '', // 新增商品名
-  category: '',    // 新增类别
-  productionDate: '' // 生产日期
+  storeId: [1],
+  count: 50,
+  productName: '',
+  category: '',
+  productionDate: new Date().toISOString().slice(0,10),
+  shelfLifeMonths: 12
 })
 
-// 防抖函数
+const productList = ref([])
+const transferList = ref([])
+const recommendList = ref([])
+
+const loadRecommend = async () => {
+  try {
+    const res = await getReplenishRecommend()
+    recommendList.value = (res.data || []).filter(r => r.recommend_qty > 0 || r.stock <= r.warning_stock)
+  } catch(_){}
+}
+
+/** 快速补货：点击推荐列表的补货按钮 */
+const quickReplenish = (row) => {
+  replenishForm.productId = String(row.product_id)
+  replenishForm.productName = row.product_name || ''
+  replenishForm.category = ''
+  replenishForm.storeId = [row.store_id]
+  replenishForm.count = Math.max(row.recommend_qty, 10)
+  replenishForm.productionDate = new Date().toISOString().slice(0,10)
+  replenishForm.shelfLifeMonths = 12
+  ElMessage.success(`已填入: ${row.product_name} → 门店${row.store_id} +${replenishForm.count}`)
+}
+
+// 品类→保质期映射
+const SHELF_LIFE_MAP = {
+  '烘焙面点':1,'乳制品':6,'饮品':9,'冷冻食品':9,'方便食品':9,
+  '零食':12,'谷物早餐':12,'宠物食品':12,'主食粮谷':18,'干货特产':18,
+  '母婴用品':18,'调味品':24,'罐头食品':24,'纸品个护':36,'家居清洁':36,'日杂百货':36,'酒类':36
+}
+const CATEGORIES = Object.keys(SHELF_LIFE_MAP)
+
+// 选品类自动填保质期
+watch(() => replenishForm.category, (cat) => {
+  if (cat && SHELF_LIFE_MAP[cat]) replenishForm.shelfLifeMonths = SHELF_LIFE_MAP[cat]
+})
+
+onMounted(async () => {
+  try {
+    const res = await getProductList()
+    productList.value = Array.isArray(res.data) ? res.data : []
+  } catch(_){}
+  loadRecommend()
+})
+
 const debounce = (fn, delay) => {
   let timer = null
   return (...args) => {
@@ -176,53 +276,39 @@ const debounce = (fn, delay) => {
   }
 }
 
-// 监听商品ID输入，自动填充信息或提示冲突（带防抖）
-watch(() => replenishForm.productId, debounce(async (newVal) => {
+// 选商品自动填信息
+watch(() => replenishForm.productId, (newVal) => {
   if (!newVal) return
-  
-  try {
-    const res = await getProductById(newVal)
-    const product = res.data
-    
-    // 再次检查当前输入框的值是否还是 newVal（防止网络延迟导致的旧结果覆盖新结果）
-    // 注意：这里需要确保 replenishForm.productId 类型一致性
-    if (String(replenishForm.productId) !== String(newVal)) return
-
-    if (product) {
-      // 如果商品已存在，自动填充名称
-      replenishForm.productName = product.name
-      // 提示用户
-      ElMessage.info(`识别到已存在商品：${product.name}，将进行补货操作`)
-    } else {
-      // 如果是新ID（查不到商品），清空名称
-      // 这样可以清除之前可能因误输入而自动填充的错误名称（例如 99 -> 鸡腿，变成 999 -> 空）
-      replenishForm.productName = '' 
-    }
-  } catch (e) {
-    // 查询出错或查不到，也视为新商品，清空名称
-    replenishForm.productName = ''
+  const p = productList.value.find(x => String(x.id) === String(newVal))
+  if (p) {
+    replenishForm.productName = p.name
+    replenishForm.category = p.category || ''
   }
-}, 500)) // 延迟 500ms 执行
+})
 
-// 处理调拨提交
 const handleTransfer = async () => {
   if (transferForm.fromStore === transferForm.toStore) {
     ElMessage.warning('调出和调入门店不能相同')
     return
   }
   try {
-    const res = await transferStock(transferForm)
-    if (res.data === 'ok') {
-      ElMessage.success('调拨成功')
+    let res;
+    if (role.value === 'HQ') {
+      res = await transferStock(transferForm)
     } else {
-      ElMessage.error(res.data || '调拨失败')
+      res = await requestTransfer(transferForm)
+    }
+    
+    if (res.data === 'ok') {
+      ElMessage.success(role.value === 'HQ' ? '调拨成功' : '借货申请已发送，等待对方审批')
+    } else {
+      ElMessage.error(res.data || '操作失败')
     }
   } catch (e) {
     console.error(e)
   }
 }
 
-// 处理补货提交
 const handleReplenish = async () => {
   if (replenishForm.count <= 0) {
     ElMessage.warning('补货数量必须大于0')
@@ -233,9 +319,7 @@ const handleReplenish = async () => {
     return
   }
   
-  // 处理多选逻辑
   let targetStores = []
-  // 检查是否选择了“全部门店”
   if (replenishForm.storeId.includes(-1)) {
     targetStores = [1, 2, 3]
   } else {
@@ -247,20 +331,18 @@ const handleReplenish = async () => {
     return
   }
   
-  // 批量执行补货
   let successCount = 0
   for (const sid of targetStores) {
     try {
-      // 构造新接口参数
       const payload = {
         productId: Number(replenishForm.productId),
         storeId: sid,
         count: Number(replenishForm.count),
         productName: replenishForm.productName || undefined,
         category: replenishForm.category || undefined,
-        productionDate: replenishForm.productionDate || undefined
+        productionDate: replenishForm.productionDate || undefined,
+        shelfLifeMonths: replenishForm.shelfLifeMonths || 12
       }
-
       const res = await replenishNewStock(payload)
       if (res.data === 'ok') {
         successCount++
@@ -272,17 +354,79 @@ const handleReplenish = async () => {
 
   if (successCount > 0) {
     ElMessage.success(`成功为 ${successCount} 个门店补货`)
-    // 清空表单
     replenishForm.productId = ''
     replenishForm.productName = ''
     replenishForm.category = ''
     replenishForm.productionDate = ''
     replenishForm.count = 100
-    // replenishForm.storeId 保持不变，方便连续操作
   } else {
     ElMessage.error('所有补货操作均失败')
   }
 }
+
+const fetchTransferList = async () => {
+  try {
+    const res = await getTransferList(role.value === 'HQ' ? null : currentStoreId)
+    transferList.value = res.data || []
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const handleApprove = async (id) => {
+  try {
+    const res = await approveTransfer(id)
+    if (res.data === 'ok') {
+      ElMessage.success('已同意借货')
+      fetchTransferList()
+    } else {
+      ElMessage.error(res.data || '审批失败')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const handleReject = async (id) => {
+  try {
+    const res = await rejectTransfer(id)
+    if (res.data === 'ok') {
+      ElMessage.success('已拒绝借货')
+      fetchTransferList()
+    } else {
+      ElMessage.error(res.data || '操作失败')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const handleTabClick = (tab) => {
+  if (tab.props.label === '调拨单记录与审批') {
+    fetchTransferList()
+  }
+}
+
+const getStatusType = (status) => {
+  if (status === 'PENDING') return 'warning'
+  if (status === 'APPROVED') return 'success'
+  if (status === 'REJECTED') return 'danger'
+  if (status === 'COMPLETED') return 'success'
+  return 'info'
+}
+
+const getStatusText = (status) => {
+  if (status === 'PENDING') return '待审批'
+  if (status === 'APPROVED') return '已同意'
+  if (status === 'REJECTED') return '已拒绝'
+  if (status === 'COMPLETED') return '已完成'
+  return status
+}
+
+onMounted(() => {
+  // 如果默认就在列表Tab，可以加载一次
+  // fetchTransferList()
+})
 </script>
 
 <style scoped>
@@ -315,7 +459,7 @@ const handleReplenish = async () => {
 }
 
 .transfer-card {
-  width: 800px;
+  width: 100%; /* 将固定宽度改为100%填满容器 */
   border: 1px solid #ebeef5;
   border-radius: 12px;
 }

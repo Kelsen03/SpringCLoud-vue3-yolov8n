@@ -40,18 +40,96 @@
         </template>
         <div ref="preferenceChartRef" style="width: 100%; height: 400px;"></div>
       </el-card>
+
+      <!-- 补货清单 -->
+      <el-card shadow="hover" class="chart-card replenish-card">
+        <template #header>
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+            <span>补货清单</span>
+            <div style="display:flex;gap:8px">
+              <el-select v-model="replenishStore" placeholder="全部门店" clearable size="small" style="width:140px" @change="loadReplenish">
+                <el-option label="旗舰店" :value="1" />
+                <el-option label="社区店" :value="2" />
+                <el-option label="生鲜店" :value="3" />
+              </el-select>
+              <el-button type="success" size="small" @click="exportReplenish">导出Excel</el-button>
+            </div>
+          </div>
+        </template>
+        <div class="replenish-stats" v-if="replenishStats">
+          <span>本月补货 {{ replenishStats.total }} 次</span>
+          <span>旗舰店 {{ replenishStats.s1 }} 次</span>
+          <span>社区店 {{ replenishStats.s2 }} 次</span>
+          <span>生鲜店 {{ replenishStats.s3 }} 次</span>
+        </div>
+        <el-table :data="replenishList" border stripe size="small" max-height="350">
+          <el-table-column prop="id" label="编号" width="70" />
+          <el-table-column prop="product_name" label="商品名" min-width="140" />
+          <el-table-column prop="category" label="品类" width="90" />
+          <el-table-column label="门店" width="90">
+            <template #default="{row}">{{ ['','旗舰店','社区店','生鲜店'][row.store_id]||'门店'+row.store_id }}</template>
+          </el-table-column>
+          <el-table-column prop="count" label="数量" width="70" />
+          <el-table-column prop="production_date" label="生产日期" width="110" />
+          <el-table-column prop="shelf_life_months" label="保质期(月)" width="90" />
+          <el-table-column prop="create_time" label="补货时间" width="160" />
+        </el-table>
+      </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import * as echarts from 'echarts'
-import { getProductRank, getStoreRank, getRegionPreference } from '@/api/analysis'
+import * as XLSX from 'xlsx'
+import { getProductRank, getStoreRank, getRegionPreference, getReplenishHistory } from '@/api/analysis'
 
 const rankChartRef = ref(null)
 const storeChartRef = ref(null)
 const preferenceChartRef = ref(null)
+
+// 补货数据
+const replenishStore = ref(null)
+const replenishList = ref([])
+const replenishStats = ref(null)
+
+const loadReplenish = async () => {
+  try {
+    const res = await getReplenishHistory(replenishStore.value || null)
+    const all = res.data || []
+    // 过滤本月
+    const now = new Date()
+    const thisMonth = all.filter(r => {
+      const t = new Date(r.create_time)
+      return t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear()
+    })
+    replenishList.value = thisMonth
+    replenishStats.value = {
+      total: thisMonth.length,
+      s1: thisMonth.filter(r => r.store_id === 1).length,
+      s2: thisMonth.filter(r => r.store_id === 2).length,
+      s3: thisMonth.filter(r => r.store_id === 3).length
+    }
+  } catch (_) {}
+}
+
+const exportReplenish = () => {
+  const data = replenishList.value.map(r => ({
+    '编号': r.id,
+    '商品名': r.product_name,
+    '品类': r.category,
+    '门店': ['','旗舰店','社区店','生鲜店'][r.store_id]||r.store_id,
+    '数量': r.count,
+    '生产日期': r.production_date,
+    '保质期(月)': r.shelf_life_months,
+    '补货时间': r.create_time
+  }))
+  const ws = XLSX.utils.json_to_sheet(data)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, '本月补货清单')
+  XLSX.writeFile(wb, `补货清单_${new Date().toISOString().slice(0,7)}.xlsx`)
+}
 
 // 初始化图表
 const initCharts = async () => {
@@ -139,6 +217,8 @@ const initCharts = async () => {
 }
 
 onMounted(() => {
+  loadReplenish()
+
   initCharts()
   // 监听窗口大小变化，重绘图表
   window.addEventListener('resize', () => {

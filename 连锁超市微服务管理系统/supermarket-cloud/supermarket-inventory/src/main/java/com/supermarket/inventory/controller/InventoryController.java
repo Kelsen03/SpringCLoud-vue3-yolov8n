@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,8 +61,7 @@ public class InventoryController {
      */
     @GetMapping("/list")
     public List<Inventory> list(@RequestParam Long storeId) {
-        return inventoryMapper.selectList(new QueryWrapper<Inventory>()
-                .eq("store_id", storeId));
+        return inventoryMapper.listSorted(storeId);
     }
     @GetMapping("/listAll")
     public List<Inventory> listAll() {
@@ -163,6 +163,7 @@ public class InventoryController {
         transfer.setFromStore(fromStore);
         transfer.setToStore(toStore);
         transfer.setQuantity(count);
+        transfer.setStatus("COMPLETED");
         transfer.setCreateTime(LocalDateTime.now());
         transferMapper.insert(transfer);
 
@@ -191,8 +192,97 @@ public class InventoryController {
         return inventoryService.replenishFull(req);
     }
 
+    /**
+     * 发起借货请求 (门店A向门店B借货)
+     */
+    @PostMapping("/transfer/request")
+    public String requestTransfer(@RequestParam Long productId,
+                                  @RequestParam Long fromStore, // 被借货的门店 (B店)
+                                  @RequestParam Long toStore,   // 发起借货的门店 (A店)
+                                  @RequestParam Integer count) {
+        // 检查B店是否有足够库存
+        Inventory fromInv = inventoryMapper.selectOne(new QueryWrapper<Inventory>()
+                .eq("product_id", productId)
+                .eq("store_id", fromStore));
+        if (fromInv == null || fromInv.getStock() < count) {
+            return "目标门店库存不足，无法发起借货";
+        }
+
+        StockTransfer transfer = new StockTransfer();
+        transfer.setProductId(productId);
+        transfer.setFromStore(fromStore);
+        transfer.setToStore(toStore);
+        transfer.setQuantity(count);
+        transfer.setStatus("PENDING");
+        transfer.setCreateTime(LocalDateTime.now());
+        transferMapper.insert(transfer);
+        return "ok";
+    }
+
+    /**
+     * 同意借货请求
+     */
+    @PostMapping("/transfer/approve")
+    @Transactional(rollbackFor = Exception.class)
+    public String approveTransfer(@RequestParam Long transferId) {
+        StockTransfer transfer = transferMapper.selectById(transferId);
+        if (transfer == null || !"PENDING".equals(transfer.getStatus())) {
+            return "调拨单不存在或已处理";
+        }
+
+        // 调用直接调拨的逻辑
+        String result = transfer(transfer.getProductId(), transfer.getFromStore(), transfer.getToStore(), transfer.getQuantity());
+        if ("ok".equals(result)) {
+            // transfer 方法内部已经插入了一条 COMPLETED 的记录，我们可以把当前的 PENDING 更新为 APPROVED
+            transfer.setStatus("APPROVED");
+            transferMapper.updateById(transfer);
+            return "ok";
+        } else {
+            return result;
+        }
+    }
+
+    /**
+     * 拒绝借货请求
+     */
+    @PostMapping("/transfer/reject")
+    public String rejectTransfer(@RequestParam Long transferId) {
+        StockTransfer transfer = transferMapper.selectById(transferId);
+        if (transfer == null || !"PENDING".equals(transfer.getStatus())) {
+            return "调拨单不存在或已处理";
+        }
+        transfer.setStatus("REJECTED");
+        transferMapper.updateById(transfer);
+        return "ok";
+    }
+
+    /**
+     * 获取调拨单列表
+     */
+    @GetMapping("/transfer/list")
+    public List<StockTransfer> getTransferList(@RequestParam(required = false) Long storeId) {
+        QueryWrapper<StockTransfer> qw = new QueryWrapper<>();
+        if (storeId != null && storeId > 0) {
+            qw.eq("from_store", storeId).or().eq("to_store", storeId);
+        }
+        qw.orderByDesc("create_time");
+        return transferMapper.selectList(qw);
+    }
+
     @DeleteMapping("/delete")
     public String delete(@RequestParam Long storeId, @RequestParam Long productId) {
         return inventoryService.deleteInventory(storeId, productId);
+    }
+
+    /** 清理库存：将库存清零但不删除商品记录 */
+    @PostMapping("/clear")
+    public String clear(@RequestParam Long storeId, @RequestParam Long productId) {
+        return inventoryService.clearInventory(storeId, productId);
+    }
+
+    /** 补货历史记录 */
+    @GetMapping("/replenish/history")
+    public List<Map<String, Object>> replenishHistory(@RequestParam(required = false) Long storeId) {
+        return inventoryService.getReplenishHistory(storeId);
     }
 }

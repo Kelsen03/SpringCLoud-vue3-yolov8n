@@ -106,7 +106,7 @@
             <!-- 搜索区 -->
             <div class="search-box">
               <el-select v-model="currentProductId" filterable placeholder="扫码或搜索商品..." size="large" style="flex:1" popper-class="product-popper">
-                <el-option v-for="item in productList" :key="item.id" :label="item.name" :value="item.id" :disabled="!item.price||item.price<=0">
+                <el-option v-for="item in productList" :key="item.id" :label="(item.barcode||'') + ' ' + item.name" :value="item.id" :disabled="!item.price||item.price<=0">
                   <div class="product-option">
                     <span class="opt-name">{{ item.name }}</span>
                     <span v-if="item.price>0" class="opt-price">¥{{ item.price }}</span>

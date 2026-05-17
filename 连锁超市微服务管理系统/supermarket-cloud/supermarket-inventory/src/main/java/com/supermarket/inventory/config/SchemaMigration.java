@@ -29,6 +29,15 @@ public class SchemaMigration {
             if (shelfCol != null && shelfCol == 0) {
                 jdbcTemplate.execute("ALTER TABLE inventory ADD COLUMN shelf_life_months INT");
             }
+            
+            // Add status column to stock_transfer table
+            Integer statusCol = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_transfer' AND COLUMN_NAME = 'status'",
+                    Integer.class);
+            if (statusCol != null && statusCol == 0) {
+                jdbcTemplate.execute("ALTER TABLE stock_transfer ADD COLUMN status VARCHAR(20) DEFAULT 'COMPLETED'");
+            }
+            
             jdbcTemplate.execute("UPDATE inventory SET production_date = '2025-06-10' WHERE production_date IS NULL");
             jdbcTemplate.execute("UPDATE inventory SET shelf_life_months = 24 WHERE shelf_life_months IS NULL AND (product_name LIKE '%抽纸%' OR product_name LIKE '%纸%' OR product_name LIKE '%牙膏%' OR product_name LIKE '%牙刷%' OR product_name LIKE '%个护%')");
             jdbcTemplate.execute("UPDATE inventory SET shelf_life_months = 12 WHERE shelf_life_months IS NULL");

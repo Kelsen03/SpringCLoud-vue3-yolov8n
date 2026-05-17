@@ -106,22 +106,20 @@
           </template>
         </el-table-column>
         
-        <el-table-column label="操作" width="100" align="center" fixed="right">
+        <el-table-column label="操作" width="130" align="center" fixed="right">
           <template #default="scope">
-            <!-- 总部可删除所有，门店仅可删除自己 -->
-            <el-popconfirm 
-              v-if="role === 'HQ' || (role === 'STORE' && Number(storeId) === currentStoreId)" 
-              title="确定要删除该库存记录吗？" 
-              confirm-button-text="确认删除"
-              cancel-button-text="取消"
-              icon="el-icon-warning"
-              icon-color="red"
-              @confirm="handleDelete(scope.row)"
-            >
-              <template #reference>
-                <el-button type="danger" link size="small">删除</el-button>
-              </template>
-            </el-popconfirm>
+            <template v-if="role === 'HQ' || (role === 'STORE' && Number(storeId) === currentStoreId)">
+              <el-popconfirm title="将库存清零，保留商品记录？" confirm-button-text="清零" cancel-button-text="取消" @confirm="handleClear(scope.row)">
+                <template #reference>
+                  <el-button type="warning" link size="small">清零</el-button>
+                </template>
+              </el-popconfirm>
+              <el-popconfirm title="确定删除该库存记录？" confirm-button-text="删除" cancel-button-text="取消" @confirm="handleDelete(scope.row)">
+                <template #reference>
+                  <el-button type="danger" link size="small">删除</el-button>
+                </template>
+              </el-popconfirm>
+            </template>
             <el-tag v-else type="info" size="small">仅查看</el-tag>
           </template>
         </el-table-column>
@@ -132,7 +130,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getInventoryList, deleteInventory } from '@/api/inventory'
+import { getInventoryList, deleteInventory, clearInventory } from '@/api/inventory'
 import { getProductList } from '@/api/product'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
@@ -184,6 +182,19 @@ const getStatus = (row) => {
 const isExpiring = (row) => {
   const status = getStatus(row)
   return status.text === '临期预警' || status.text === '已过期'
+}
+
+// 清零库存
+const handleClear = async (row) => {
+  try {
+    const res = await clearInventory(storeId.value, row.productId)
+    if (res.data === 'ok') {
+      ElMessage.success('库存已清零')
+      load()
+    } else {
+      ElMessage.error(res.data || '清零失败')
+    }
+  } catch (e) { console.error(e) }
 }
 
 // 删除库存

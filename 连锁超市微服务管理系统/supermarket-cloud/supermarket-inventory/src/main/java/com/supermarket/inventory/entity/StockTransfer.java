@@ -13,6 +13,7 @@ public class StockTransfer {
     private Long fromStore;
     private Long toStore;
     private Integer quantity;
+    private String status; // 'PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'
     private LocalDateTime createTime;
 
     public Long getId() {
@@ -44,6 +45,12 @@ public class StockTransfer {
     }
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
     }
     public LocalDateTime getCreateTime() {
         return createTime;

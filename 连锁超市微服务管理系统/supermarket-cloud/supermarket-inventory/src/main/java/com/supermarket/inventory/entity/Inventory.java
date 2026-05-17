@@ -1,6 +1,7 @@
 package com.supermarket.inventory.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDate;
@@ -16,6 +17,9 @@ public class Inventory {
     private Integer warningStock;
     private LocalDate productionDate;
     private Integer shelfLifeMonths;
+
+    @TableField(exist = false)
+    private Integer daysToExpire;
 
     public Long getId() {
         return id;
@@ -65,4 +69,6 @@ public class Inventory {
     public void setShelfLifeMonths(Integer shelfLifeMonths) {
         this.shelfLifeMonths = shelfLifeMonths;
     }
+    public Integer getDaysToExpire() { return daysToExpire; }
+    public void setDaysToExpire(Integer daysToExpire) { this.daysToExpire = daysToExpire; }
 }

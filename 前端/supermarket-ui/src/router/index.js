@@ -22,7 +22,7 @@ const routes = [
   { path: '/inventory', component: Inventory }, 
   { path: '/order', component: Order }, 
   { path: '/analysis', component: Analysis },
-  { path: '/transfer', component: Transfer },
+  { path: '/transfer', component: Transfer, meta: { title: '调拨补货', roles: ['HQ', 'STORE'] } },
   
   // 新增路由
   { path: '/pos', component: Pos },

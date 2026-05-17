@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>总部管理员流程图 (纯折线版)</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        
+        // 使用 step 曲线类型强制实现纯折线/直线效果
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#5b9bd5',     /* 蓝 */
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#3a7cbd',
+                lineColor: '#333',
+                secondaryColor: '#fca881',   /* 橙 */
+                tertiaryColor: '#5b9bd5'
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: 'stepBefore',  /* 核心修改：强制折线，禁止曲线 */
+                nodeSpacing: 50,
+                rankSpacing: 50
+            }
+        });
+    </script>
+    <style>
+        body { 
+            font-family: 'SimSun', '宋体', serif; 
+            display: flex; 
+            justify-content: center; 
+            padding: 40px; 
+            background-color: #f5f7f9;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        /* 提供给用户的修改说明 */
+        .editor-tips {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #d46b08;
+            border-radius: 4px;
+        }
+        .editor-tips code {
+            background: #fafafa;
+            padding: 2px 5px;
+            border: 1px solid #d9d9d9;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="editor-tips">
+            <strong>如何修改此图？</strong><br>
+            1. 右键此文件选择“用记事本打开”或“用 VS Code 打开”。<br>
+            2. 找到下方 <code>&lt;div class="mermaid"&gt;</code> 标签内的文本内容。<br>
+            3. 修改中括号 <code>[]</code>、大括号 <code>{}</code> 内的文字即可直接更新流程图文字。<br>
+            4. 保存文件，在浏览器中刷新即可看到最新效果。（线条已全部锁定为直角折线）
+        </div>
+
+        <!-- 流程图源码区域，用户可直接修改这里 -->
+        <div class="mermaid">
+flowchart TD
+    %% 节点形状与样式定义
+    classDef startEnd fill:#fca881,stroke:#e88a65,stroke-width:1px,color:#fff,rx:20px,ry:20px
+    classDef process fill:#5b9bd5,stroke:#3a7cbd,stroke-width:1px,color:#fff
+    classDef condition fill:#5b9bd5,stroke:#3a7cbd,stroke-width:1px,color:#fff,shape:diamond
+    classDef io fill:#5b9bd5,stroke:#3a7cbd,stroke-width:1px,color:#fff,shape:parallelogram
+
+    %% 定义节点
+    Start([进入系统]):::startEnd
+    LoginPage[登录页面]:::process
+    HasAccount{是否有账号}:::condition
+    InputInfo[输入账号密码]:::process
+    CheckInfo{校验账号密码}:::condition
+    
+    ErrorAccount[/提示账号不存在/]:::io
+    ErrorPwd[/提示密码错误/]:::io
+    ContactAdmin[联系系统维护人员]:::process
+    
+    MainPanel[管理员界面]:::process
+    
+    ActionAdd[添加信息]:::process
+    ActionUpdate[修改信息]:::process
+    ActionDelete[删除信息]:::process
+    
+    CheckAdd{是否成功}:::condition
+    CheckUpdate{是否成功}:::condition
+    CheckDelete{是否成功}:::condition
+    
+    End([退出系统]):::startEnd
+
+    %% 连线关系 (使用直角折线)
+    Start --> LoginPage
+    LoginPage --> HasAccount
+    HasAccount -- 否 --> ContactAdmin
+    HasAccount -- 是 --> InputInfo
+    
+    InputInfo --> CheckInfo
+    
+    CheckInfo -- 账号错误 --> ErrorAccount
+    ErrorAccount --> LoginPage
+    
+    CheckInfo -- 密码错误 --> ErrorPwd
+    ErrorPwd --> InputInfo
+    
+    CheckInfo -- 验证通过 --> MainPanel
+    
+    MainPanel --> ActionAdd
+    MainPanel --> ActionUpdate
+    MainPanel --> ActionDelete
+    
+    ActionAdd --> CheckAdd
+    CheckAdd -- 失败 --> ActionAdd
+    
+    ActionUpdate --> CheckUpdate
+    CheckUpdate -- 失败 --> ActionUpdate
+    
+    ActionDelete --> CheckDelete
+    CheckDelete -- 失败 --> ActionDelete
+    
+    CheckAdd -- 成功 --> MainPanel
+    CheckUpdate -- 成功 --> MainPanel
+    CheckDelete -- 成功 --> MainPanel
+    
+    MainPanel --> End
+        </div>
+    </div>
+</body>
+</html>

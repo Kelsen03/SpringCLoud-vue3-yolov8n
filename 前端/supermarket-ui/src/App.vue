@@ -134,6 +134,11 @@ const isActive = (path) => {
               <el-icon><Box /></el-icon>
               <span>本店库存</span>
             </div>
+
+            <div class="menu-item" :class="{ active: isActive('/transfer') }" @click="go('/transfer')">
+              <el-icon><Van /></el-icon>
+              <span>店间借货</span>
+            </div>
             
             <div class="menu-item" :class="{ active: isActive('/product') }" @click="go('/product')">
               <el-icon><Shop /></el-icon>
@@ -436,9 +441,14 @@ body, html {
 
 .el-table {
   border-radius: 12px !important;
-  overflow: hidden;
   border: none !important;
+  width: 100% !important;
 }
+
+.el-table__body-wrapper {
+  overflow-x: auto !important;
+}
+
 .el-table th.el-table__cell {
   background-color: #f5f5f7 !important;
   color: var(--apple-text-light);

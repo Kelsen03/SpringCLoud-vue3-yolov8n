@@ -23,16 +23,48 @@ public interface AnalysisMapper {
             "ORDER BY total_quantity DESC")
     List<Map<String, Object>> productRank();
 
-    // 3. 补货建议 (近7天销量 > 当前库存)
-    // Cross-database join: supermarket_inventory.inventory JOIN supermarket_order.order/order_item
-    @Select("SELECT i.product_id, i.store_id, i.stock, SUM(oi.quantity) AS week_sales " +
+    // 3. 补货建议：缺货+临期优先排序
+    @Select("SELECT i.product_id, i.product_name, i.store_id, i.stock, i.warning_stock, " +
+            "i.production_date, i.shelf_life_months, " +
+            "DATEDIFF(DATE_ADD(i.production_date, INTERVAL i.shelf_life_months MONTH), NOW()) AS days_to_expire, " +
+            "COALESCE(s.week_sales, 0) AS week_sales " +
             "FROM supermarket_inventory.inventory i " +
-            "JOIN supermarket_order.order_item oi ON i.product_id = oi.product_id " +
-            "JOIN supermarket_order.`order` o ON oi.order_id = o.id " +
-            "WHERE o.create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
-            "GROUP BY i.product_id, i.store_id, i.stock " +
-            "HAVING week_sales > i.stock")
+            "LEFT JOIN (SELECT oi.product_id, o.store_id, SUM(oi.quantity) AS week_sales " +
+            "  FROM supermarket_order.order_item oi " +
+            "  JOIN supermarket_order.`order` o ON oi.order_id = o.id " +
+            "  WHERE o.create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+            "  GROUP BY oi.product_id, o.store_id) s ON i.product_id = s.product_id AND i.store_id = s.store_id " +
+            "ORDER BY (i.stock <= i.warning_stock) DESC, " +
+            "  (DATEDIFF(DATE_ADD(i.production_date, INTERVAL i.shelf_life_months MONTH), NOW()) < 30) DESC, " +
+            "  i.stock ASC")
     List<Map<String, Object>> replenishSuggest();
+
+    /** 补货推荐 v3 — 频率×单次销量 双因子加权
+     *  ABC 分类在 Service 层 Java 计算
+     */
+    @Select("SELECT i.product_id, i.product_name, i.store_id, i.stock, i.warning_stock, " +
+            "i.production_date, i.shelf_life_months, " +
+            "DATEDIFF(DATE_ADD(i.production_date, INTERVAL i.shelf_life_months MONTH), NOW()) AS days_to_expire, " +
+            "COALESCE(ROUND(s.total_sales / 14.0, 1), 0) AS daily_sales, " +
+            "COALESCE(s.sales_days, 0) AS sales_days, " +
+            "COALESCE(ROUND(s.total_sales / GREATEST(s.order_cnt, 1), 0), 0) AS avg_qty, " +
+            "s.total_sales, " +
+            "CASE WHEN COALESCE(s.total_sales, 0) > 0 THEN " +
+            "  GREATEST(i.warning_stock * 3 - i.stock, " +
+            "    ROUND((s.total_sales / 14.0) * 10 * " +
+            "      (1 + (s.sales_days / 14.0) + LEAST((s.total_sales / GREATEST(s.order_cnt, 1)) / 10.0, 1.0)) " +
+            "    - i.stock)) " +
+            "  ELSE GREATEST(0, i.warning_stock * 5 - i.stock) " +
+            "END AS recommend_qty " +
+            "FROM supermarket_inventory.inventory i " +
+            "LEFT JOIN (SELECT oi.product_id, o.store_id, SUM(oi.quantity) AS total_sales, " +
+            "  COUNT(DISTINCT DATE(o.create_time)) AS sales_days, COUNT(DISTINCT o.id) AS order_cnt " +
+            "FROM supermarket_order.order_item oi " +
+            "JOIN supermarket_order.`order` o ON oi.order_id = o.id " +
+            "WHERE o.create_time >= DATE_SUB(NOW(), INTERVAL 14 DAY) " +
+            "GROUP BY oi.product_id, o.store_id) s ON i.product_id = s.product_id AND i.store_id = s.store_id " +
+            "ORDER BY (i.stock <= i.warning_stock) DESC, recommend_qty DESC, i.stock ASC")
+    List<Map<String, Object>> replenishRecommend();
 
     @Select("SELECT o.store_id, " +
             "CASE " +

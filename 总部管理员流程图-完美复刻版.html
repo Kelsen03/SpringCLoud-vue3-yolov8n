@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>总部管理员流程图 - 严格自上而下排版</title>
+    <style>
+        body {
+            font-family: 'SimSun', '宋体', serif;
+            background-color: #f5f7f9;
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .flowchart-container {
+            background-color: white;
+            padding: 40px 60px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+            width: 800px;
+            height: 1200px;
+        }
+
+        /* 基础节点样式 */
+        .node {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: #fff;
+            text-align: center;
+            line-height: 1.2;
+            z-index: 2;
+        }
+
+        /* 开始/结束节点 */
+        .start-end {
+            background-color: #fca881;
+            border: 1px solid #e88a65;
+            border-radius: 20px;
+            width: 120px;
+            height: 40px;
+            left: 340px; /* 居中 (800 - 120)/2 */
+        }
+
+        /* 普通处理节点 */
+        .process {
+            background-color: #5b9bd5;
+            border: 1px solid #3a7cbd;
+            width: 120px;
+            height: 40px;
+            border-radius: 2px;
+        }
+
+        /* 菱形判断节点 */
+        .condition {
+            background-color: #5b9bd5;
+            border: 1px solid #3a7cbd;
+            width: 80px;
+            height: 80px;
+            transform: rotate(45deg);
+        }
+        .condition-text {
+            transform: rotate(-45deg);
+            width: 90px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        /* 平行四边形输入输出节点 */
+        .io {
+            background-color: #5b9bd5;
+            border: 1px solid #3a7cbd;
+            width: 120px;
+            height: 40px;
+            transform: skew(-20deg);
+        }
+        .io-text {
+            transform: skew(20deg);
+            width: 100%;
+            text-align: center;
+        }
+
+        /* ===== 节点定位 ===== */
+        
+        #n1 { top: 30px; } /* 进入系统 */
+        #n2 { top: 120px; left: 340px; } /* 登录页面 */
+        
+        #n3 { top: 210px; left: 360px; } /* 是否注册/分配账号 */
+        #n4 { top: 230px; left: 550px; } /* 联系运维 (代替注册页面) */
+        
+        #n5 { top: 330px; left: 340px; height: 50px;} /* 输入账号密码 */
+        
+        #n6 { top: 430px; left: 360px; } /* 输入正确？ */
+        
+        #n7 { top: 450px; left: 130px; } /* 账号不存在 */
+        #n8 { top: 450px; left: 550px; } /* 密码错误 */
+        
+        #n9 { top: 560px; left: 340px; } /* 管理员界面 */
+        
+        /* 三个并列操作 */
+        #n10 { top: 680px; left: 160px; } /* 添加 */
+        #n11 { top: 680px; left: 340px; } /* 修改 */
+        #n12 { top: 680px; left: 520px; } /* 删除 */
+        
+        /* 三个并列判断 */
+        #n13 { top: 780px; left: 180px; }
+        #n14 { top: 780px; left: 360px; }
+        #n15 { top: 780px; left: 540px; }
+        
+        #n16 { top: 940px; left: 340px; } /* 返回管理员界面 */
+        #n17 { top: 1050px; } /* 退出系统 */
+
+        /* ===== 画线 SVG ===== */
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        path {
+            fill: none;
+            stroke: #333;
+            stroke-width: 1.5;
+        }
+        
+        polygon {
+            fill: #333;
+        }
+
+        /* 连线文字标签 */
+        .line-label {
+            position: absolute;
+            font-size: 12px;
+            color: #333;
+            background: white;
+            padding: 2px 4px;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="flowchart-container">
+
+    <!-- 节点区 -->
+    <div id="n1" class="node start-end">进入系统</div>
+    
+    <div id="n2" class="node process">登录页面</div>
+    
+    <div id="n3" class="node condition"><div class="condition-text">是否有<br>分配账号</div></div>
+    
+    <div id="n4" class="node process">联系运维</div>
+    
+    <div id="n5" class="node process">输入账号<br>密码登录</div>
+    
+    <div id="n6" class="node condition"><div class="condition-text">输入正确</div></div>
+    
+    <div id="n7" class="node io"><div class="io-text">提示账号<br>不存在</div></div>
+    
+    <div id="n8" class="node io"><div class="io-text">提示密码错误<br>请重新输入</div></div>
+    
+    <div id="n9" class="node process">管理员界面</div>
+    
+    <div id="n10" class="node process">添加信息</div>
+    <div id="n11" class="node process">修改信息</div>
+    <div id="n12" class="node process">删除信息</div>
+    
+    <div id="n13" class="node condition"><div class="condition-text">是否成功</div></div>
+    <div id="n14" class="node condition"><div class="condition-text">是否成功</div></div>
+    <div id="n15" class="node condition"><div class="condition-text">是否成功</div></div>
+    
+    <div id="n16" class="node process">管理员界面</div>
+    
+    <div id="n17" class="node start-end">退出系统</div>
+
+    <!-- 文字标签区 -->
+    <div class="line-label" style="top: 240px; left: 470px;">否</div>
+    <div class="line-label" style="top: 295px; left: 405px;">是</div>
+    
+    <div class="line-label" style="top: 458px; left: 280px;">账号错误</div>
+    <div class="line-label" style="top: 458px; left: 470px;">密码错误</div>
+    
+    <div class="line-label" style="top: 735px; left: 110px;">失败</div>
+    <div class="line-label" style="top: 735px; left: 460px;">失败</div>
+    <div class="line-label" style="top: 735px; left: 650px;">失败</div>
+    
+    <div class="line-label" style="top: 890px; left: 375px;">成功</div>
+
+    <!-- SVG 画线区 -->
+    <svg>
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" />
+            </marker>
+        </defs>
+        
+        <!-- 进入系统 -> 登录页面 -->
+        <path d="M 400 70 L 400 120" marker-end="url(#arrow)" />
+        
+        <!-- 登录页面 -> 是否有账号 -->
+        <path d="M 400 160 L 400 210" marker-end="url(#arrow)" />
+        
+        <!-- 是否有账号 -> 否 -> 联系运维 -->
+        <path d="M 440 250 L 550 250" marker-end="url(#arrow)" />
+        
+        <!-- 是否有账号 -> 是 -> 输入账号密码 -->
+        <path d="M 400 290 L 400 330" marker-end="url(#arrow)" />
+        
+        <!-- 输入账号密码 -> 输入正确 -->
+        <path d="M 400 380 L 400 430" marker-end="url(#arrow)" />
+        
+        <!-- 输入正确 -> 账号错误 -> 提示账号不存在 -->
+        <path d="M 360 470 L 250 470" marker-end="url(#arrow)" />
+        
+        <!-- 输入正确 -> 密码错误 -> 提示密码错误 -->
+        <path d="M 440 470 L 550 470" marker-end="url(#arrow)" />
+        
+        <!-- 提示密码错误 -> 输入账号密码 (循环回去) -->
+        <path d="M 610 450 L 610 355 L 460 355" marker-end="url(#arrow)" />
+        
+        <!-- 提示账号不存在 -> 登录页面 (大循环回去) -->
+        <path d="M 140 470 L 60 470 L 60 140 L 340 140" marker-end="url(#arrow)" />
+        
+        <!-- 输入正确 -> 验证通过 -> 管理员界面 -->
+        <path d="M 400 510 L 400 560" marker-end="url(#arrow)" />
+        
+        <!-- 管理员界面 -> 添加/修改/删除 -->
+        <path d="M 400 600 L 400 640" />
+        <path d="M 220 640 L 580 640" />
+        <path d="M 220 640 L 220 680" marker-end="url(#arrow)" />
+        <path d="M 400 640 L 400 680" marker-end="url(#arrow)" />
+        <path d="M 580 640 L 580 680" marker-end="url(#arrow)" />
+        
+        <!-- 添加 -> 是否成功 -->
+        <path d="M 220 720 L 220 780" marker-end="url(#arrow)" />
+        <!-- 修改 -> 是否成功 -->
+        <path d="M 400 720 L 400 780" marker-end="url(#arrow)" />
+        <!-- 删除 -> 是否成功 -->
+        <path d="M 580 720 L 580 780" marker-end="url(#arrow)" />
+        
+        <!-- 失败循环 (左) -->
+        <path d="M 180 820 L 140 820 L 140 700 L 160 700" marker-end="url(#arrow)" />
+        
+        <!-- 失败循环 (中) -->
+        <path d="M 360 820 L 300 820 L 300 700 L 340 700" marker-end="url(#arrow)" />
+        
+        <!-- 失败循环 (右) -->
+        <path d="M 620 820 L 660 820 L 660 700 L 640 700" marker-end="url(#arrow)" />
+        
+        <!-- 成功 -> 汇总到下面管理员界面 -->
+        <path d="M 220 860 L 220 900" />
+        <path d="M 400 860 L 400 900" />
+        <path d="M 580 860 L 580 900" />
+        <path d="M 220 900 L 580 900" />
+        <path d="M 400 900 L 400 940" marker-end="url(#arrow)" />
+        
+        <!-- 管理员界面 -> 退出系统 -->
+        <path d="M 400 980 L 400 1050" marker-end="url(#arrow)" />
+
+    </svg>
+
+</div>
+
+</body>
+</html>

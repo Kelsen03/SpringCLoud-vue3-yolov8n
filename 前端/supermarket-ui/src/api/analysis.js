@@ -1,16 +1,13 @@
 import request from '@/utils/request'
 
-// 获取商品销量排行榜
-export const getProductRank = () => {
-  return request.get('/analysis/productRank')
-}
+export const getProductRank = () => request.get('/analysis/productRank')
+export const getStoreRank = () => request.get('/analysis/storeRank')
+export const getRegionPreference = () => request.get('/analysis/regionPreference')
 
-// 获取门店销售排行
-export const getStoreRank = () => {
-  return request.get('/analysis/storeRank')
-}
+/** 补货推荐算法（含建议补货量） */
+export const getReplenishRecommend = () => request.get('/analysis/replenish/recommend')
 
-// 获取区域偏好（新增）
-export const getRegionPreference = () => {
-  return request.get('/analysis/regionPreference')
+/** 补货历史（按门店可选） */
+export const getReplenishHistory = (storeId) => {
+  return request.get('/inventory/replenish/history', { params: { storeId } })
 }

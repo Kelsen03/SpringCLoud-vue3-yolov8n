@@ -11,25 +11,14 @@
       </div>
     </header>
 
-    <!-- 第一屏：首屏轮播与核心标语 -->
+    <!-- 第一屏：Hero Section -->
     <section class="section hero-section">
-      <!-- 背景轮播 -->
-      <div class="carousel-background">
-        <div 
-          v-for="(img, index) in bgImages" 
-          :key="index"
-          class="bg-image"
-          :class="{ active: currentBgIndex === index }"
-          :style="{ backgroundImage: `url(${img})` }"
-        ></div>
-      </div>
-      <!-- 磨砂玻璃遮罩 -->
-      <div class="glass-overlay"></div>
+      <div class="hero-bg"></div>
       
-      <div class="hero-content">
-        <h1 class="hero-title">重塑现代零售新体验。</h1>
-        <p class="hero-subtitle">基于 Spring Cloud 微服务与 YOLOv8 视觉识别的智能连锁超市管理平台，为您提供前所未有的高效运营方案。</p>
-        <button class="hero-btn" @click="showLogin = true">立即开启</button>
+      <div class="hero-content fade-up">
+        <h1 class="hero-title">零售管理，<br>跃入智能世代。</h1>
+        <p class="hero-subtitle">基于 Spring Cloud Alibaba 与 YOLOv8 视觉大模型构建。<br>涵盖多门店分布式库存、AI 智能收银及全链路数据洞察，为您重塑高效运营新体验。</p>
+        <button class="hero-btn" @click="showLogin = true">登录控制台</button>
       </div>
       
       <!-- 向下滚动提示 -->
@@ -42,35 +31,37 @@
     <!-- 第二屏：AI 视觉收银 -->
     <section class="section feature-section light-section">
       <div class="feature-container">
-        <div class="feature-text">
-          <h2 class="feature-title">智能视觉收银</h2>
-          <p class="feature-desc">抛弃繁琐的传统扫码。系统深度融合了先进的 YOLOv8 目标检测算法与 OpenCV 色彩分析技术，在极低硬件资源消耗下，实现毫秒级商品精准识别。让收银流程如丝般顺滑，大幅提升门店结账效率。</p>
+        <div class="feature-text reveal">
+          <h2 class="feature-title">毫秒级 AI 视觉收银</h2>
+          <p class="feature-desc">告别传统低效扫码。系统深度集成 YOLOv8 目标检测算法与 OpenCV 图像处理技术，实现商品精准识别与一键无感结算。内置严密的员工交接班盲盘对账机制，让门店前台运营如丝般顺滑且滴水不漏。</p>
         </div>
-        <div class="feature-image-wrapper">
+        <div class="feature-image-wrapper reveal-delay">
           <img class="feature-image" src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1000&q=80" alt="AI Vision Checkout" />
         </div>
       </div>
     </section>
 
-    <!-- 第三屏：微服务架构 -->
+    <!-- 第三屏：分布式库存调拨 -->
     <section class="section feature-section gray-section">
       <div class="feature-container reverse">
-        <div class="feature-text">
-          <h2 class="feature-title">云原生微服务架构</h2>
-          <p class="feature-desc">系统底层采用 Spring Cloud 架构，实现多门店库存数据的物理隔离与逻辑统一。无论业务规模如何扩张，高可用、高并发的分布式节点都能为您提供坚不可摧的底层技术支撑。</p>
+        <div class="feature-text reveal">
+          <h2 class="feature-title">全局库存与智能调拨</h2>
+          <p class="feature-desc">依托云原生微服务架构，完美实现多门店物理数据隔离与逻辑统一。支持总部强制补货下发与门店间双向借货审批流，辅以底层原子级库存扣减与 FIFO 效期预警机制，彻底告别库存积压与断货危机。</p>
         </div>
-        <div class="feature-image-wrapper">
-          <img class="feature-image" src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1000&q=80" alt="Microservices Architecture" />
+        <div class="feature-image-wrapper reveal-delay">
+          <img class="feature-image" src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1000&q=80" alt="Global Inventory" />
         </div>
       </div>
     </section>
 
     <!-- 第四屏：数据分析与页脚 -->
-    <section class="section footer-section">
+    <section class="section footer-section light-section">
       <div class="data-feature">
-        <h2 class="feature-title">全方位数据洞察</h2>
-        <p class="feature-desc">依托 ECharts 强大的可视化能力，实时呈现多维度财务对账与库存分析报表。海量数据一目了然，助您精准掌控商业脉搏，做出更明智的战略决策。</p>
-        <img class="data-image" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="Data Analysis Dashboard" />
+        <div class="feature-text text-center reveal">
+          <h2 class="feature-title">全景商业数据罗盘</h2>
+          <p class="feature-desc" style="max-width: 800px; margin: 0 auto;">无缝集成 ECharts 可视化引擎，实时聚合各门店营业额、客单价与热销商品排行。多维度穿透分析商业数据，助您精准洞察市场脉搏，驱动科学商业决策。</p>
+        </div>
+        <img class="data-image reveal-delay" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="Data Analysis Dashboard" />
       </div>
 
       <footer class="apple-footer">
@@ -88,34 +79,102 @@
       </footer>
     </section>
 
-    <!-- 登录弹窗 (高级毛玻璃 Modal) -->
+    <!-- 登录与注册弹窗 (3D翻转 Modal) -->
     <transition name="fade">
       <div v-if="showLogin" class="login-modal-overlay">
         <div class="login-modal-backdrop" @click="showLogin = false"></div>
-        <div class="login-modal-content">
-          <button class="close-btn" @click="showLogin = false">✕</button>
-          
-          <div class="modal-header">
-            <h2 class="modal-title">登录系统</h2>
-            <p class="modal-subtitle">欢迎回来，请输入您的账号密码继续</p>
+        
+        <div class="perspective-container">
+          <div class="flipper" :class="{ 'is-flipped': isFlipped }">
+            
+            <!-- 正面：登录 -->
+            <div class="side front">
+              <button class="close-btn" @click="showLogin = false">✕</button>
+              
+              <div class="modal-header">
+                <h2 class="modal-title">登录系统</h2>
+                <p class="modal-subtitle">欢迎回来，请输入您的账号密码继续</p>
+              </div>
+              
+              <form class="login-form" @submit.prevent="login">
+                <div class="apple-input-group" :class="{ 'has-value': username }">
+                  <label class="apple-floating-label">用户名</label>
+                  <input type="text" v-model="username" class="premium-input" required />
+                </div>
+                <div class="apple-input-group" :class="{ 'has-value': password }" style="margin-top: 16px;">
+                  <label class="apple-floating-label">密码</label>
+                  <input type="password" v-model="password" class="premium-input" required />
+                </div>
+                
+                <button type="submit" class="submit-btn" :disabled="loading">
+                  {{ loading ? '登录中...' : '继续' }}
+                </button>
+                
+                <div class="register-link">
+                  <a href="#" @click.prevent="isFlipped = true">创建收银员账号 ↗</a>
+                </div>
+              </form>
+            </div>
+
+            <!-- 背面：注册 -->
+            <div class="side back">
+              <button class="close-btn" @click="showLogin = false">✕</button>
+              
+              <div class="modal-header" style="margin-bottom: 24px;">
+                <h2 class="modal-title">创建账号</h2>
+                <p class="modal-subtitle">加入我们，开启智能零售体验</p>
+              </div>
+              
+              <el-form class="login-form" :model="regForm" :rules="regRules" ref="regFormRef" @submit.prevent>
+                <el-form-item prop="name">
+                  <div class="apple-input-group" :class="{ 'has-value': regForm.name }">
+                    <label class="apple-floating-label">姓名全拼 (如: lkq)</label>
+                    <input type="text" v-model="regForm.name" class="premium-input" @input="generateUsername" required />
+                  </div>
+                </el-form-item>
+
+                <el-form-item prop="storeId">
+                  <div class="apple-input-group has-value">
+                    <label class="apple-floating-label" style="top: 16px; font-size: 12px;">所在门店</label>
+                    <el-select v-model="regForm.storeId" placeholder=" " @change="generateUsername" style="width: 100%;">
+                      <el-option label="1号店 (总店)" value="1" />
+                      <el-option label="2号店 (分店)" value="2" />
+                      <el-option label="3号店 (分店)" value="3" />
+                    </el-select>
+                  </div>
+                </el-form-item>
+                
+                <el-form-item prop="password">
+                  <div class="apple-input-group" :class="{ 'has-value': regForm.password }">
+                    <label class="apple-floating-label">密码</label>
+                    <input type="password" v-model="regForm.password" class="premium-input" required />
+                  </div>
+                </el-form-item>
+
+                <el-form-item prop="confirmPassword">
+                  <div class="apple-input-group" :class="{ 'has-value': regForm.confirmPassword }">
+                    <label class="apple-floating-label">确认密码</label>
+                    <input type="password" v-model="regForm.confirmPassword" class="premium-input" required />
+                  </div>
+                </el-form-item>
+
+                <div class="account-preview" v-if="regForm.username">
+                  <div class="apple-alert">
+                    <div class="alert-title">分配账号: <strong>{{ regForm.username }}</strong></div>
+                  </div>
+                </div>
+
+                <button type="button" class="submit-btn" :disabled="regLoading" @click="handleRegister" style="margin-top: 8px;">
+                  {{ regLoading ? '注册中...' : '注册' }}
+                </button>
+
+                <div class="register-link">
+                  <a href="#" @click.prevent="isFlipped = false">已有账号？返回登录 ↗</a>
+                </div>
+              </el-form>
+            </div>
+            
           </div>
-          
-          <form class="login-form" @submit.prevent="login">
-            <div class="input-group">
-              <input type="text" v-model="username" class="premium-input" placeholder="用户名" required />
-            </div>
-            <div class="input-group">
-              <input type="password" v-model="password" class="premium-input" placeholder="密码" required />
-            </div>
-            
-            <button type="submit" class="submit-btn" :disabled="loading">
-              {{ loading ? '登录中...' : '继续' }}
-            </button>
-            
-            <div class="register-link">
-              <a href="#" @click.prevent="goToRegister">创建收银员账号 ↗</a>
-            </div>
-          </form>
         </div>
       </div>
     </transition>
@@ -125,44 +184,25 @@
 <script setup>
 import request from '@/utils/request'
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 
-// 状态控制
+// ================== 状态控制 ==================
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const showLogin = ref(false)
 const isScrolled = ref(false)
+const isFlipped = ref(false) // 控制 3D 翻转
 
 // 监听容器滚动，控制导航栏背景变化
 const handleScroll = (e) => {
   isScrolled.value = e.target.scrollTop > 50
 }
 
-// 首屏轮播图逻辑
-const bgImages = [
-  'https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-]
-const currentBgIndex = ref(0)
-let bgTimer = null
-
-onMounted(() => {
-  bgTimer = setInterval(() => {
-    currentBgIndex.value = (currentBgIndex.value + 1) % bgImages.length
-  }, 5000)
-})
-
-onUnmounted(() => {
-  if (bgTimer) clearInterval(bgTimer)
-})
-
-// 登录逻辑 (保持原有业务逻辑不变)
+// ================== 登录逻辑 ==================
 const login = async () => {
   if (!username.value || !password.value) {
     ElMessage.warning('请输入用户名和密码')
@@ -216,9 +256,95 @@ const login = async () => {
   }
 }
 
-// 跳转注册页
-const goToRegister = () => {
-  router.push('/register')
+// ================== 注册逻辑 ==================
+const regFormRef = ref(null)
+const regLoading = ref(false)
+
+const regForm = reactive({
+  name: '',
+  storeId: '',
+  password: '',
+  confirmPassword: '',
+  username: '' 
+})
+
+const validatePass2 = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请再次输入密码'))
+  } else if (value !== regForm.password) {
+    callback(new Error('两次输入密码不一致!'))
+  } else {
+    callback()
+  }
+}
+
+const regRules = reactive({
+  name: [
+    { required: true, message: '请输入姓名全拼或首字母缩写', trigger: 'blur' },
+    { pattern: /^[a-zA-Z]+$/, message: '只能输入英文字母', trigger: 'blur' }
+  ],
+  storeId: [
+    { required: true, message: '请选择所在门店', trigger: 'change' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, validator: validatePass2, trigger: 'blur' }
+  ]
+})
+
+const generateUsername = () => {
+  if (regForm.name && regForm.storeId) {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    const dateStr = `${year}${month}${day}`
+    
+    const storeCode = String(regForm.storeId).padStart(2, '0')
+    regForm.username = `${regForm.name.toLowerCase()}${storeCode}${dateStr}`
+  } else {
+    regForm.username = ''
+  }
+}
+
+const handleRegister = async () => {
+  if (!regFormRef.value) return
+  await regFormRef.value.validate(async (valid) => {
+    if (valid) {
+      regLoading.value = true
+      try {
+        const res = await request.post('/auth/register', {
+          username: regForm.username,
+          password: regForm.password,
+          role: 'CASHIER', 
+          storeId: Number(regForm.storeId), 
+          realName: regForm.name
+        })
+        const responseData = res.data || res
+        const isSuccess = responseData.code === 0 || responseData.code === 200
+        
+        if (isSuccess) { 
+           ElMessage.success(`注册成功！请使用账号 ${regForm.username} 登录。`)
+           // 自动填充账号密码，并翻转回登录面
+           username.value = regForm.username
+           password.value = regForm.password
+           setTimeout(() => {
+             isFlipped.value = false
+           }, 800)
+        } else {
+           ElMessage.error(responseData.message || responseData.msg || '注册失败')
+        }
+      } catch (e) {
+        console.error(e)
+        ElMessage.error(e.response?.data?.message || e.message || '注册失败，请检查网络')
+      } finally {
+        regLoading.value = false
+      }
+    }
+  })
 }
 </script>
 
@@ -227,7 +353,7 @@ const goToRegister = () => {
 .landing-wrapper {
   height: 100vh;
   overflow-y: scroll;
-  /* 启用原生的滚动吸附 (Scroll Snapping)，实现一页一页滑动的效果 */
+  /* 启用原生的滚动吸附，实现一页一页丝滑滑动 */
   scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -255,10 +381,9 @@ const goToRegister = () => {
   align-items: center;
   padding: 0 40px;
   z-index: 100;
-  transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
-  background: rgba(255, 255, 255, 0); /* 顶部透明 */
+  transition: background-color 0.4s ease, backdrop-filter 0.4s ease, box-shadow 0.4s ease;
+  background: rgba(255, 255, 255, 0); 
 }
-/* 滚动后的导航栏形态 (高级毛玻璃) */
 .landing-header.scrolled {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: saturate(180%) blur(20px);
@@ -288,7 +413,7 @@ const goToRegister = () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .header-login-btn:hover {
   background: #000000;
@@ -303,35 +428,11 @@ const goToRegister = () => {
   text-align: center;
 }
 
-/* 首屏轮播背景 */
-.carousel-background {
+.hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 50% -20%, #e5e5ea 0%, #f5f5f7 80%);
   z-index: 1;
-  background-color: #f5f5f7;
-}
-.bg-image {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 1.5s ease-in-out, transform 8s linear;
-  transform: scale(1.05);
-}
-.bg-image.active {
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* 首屏浅色毛玻璃遮罩 */
-.glass-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: saturate(180%) blur(30px);
-  -webkit-backdrop-filter: saturate(180%) blur(30px);
-  z-index: 2;
 }
 
 .hero-content {
@@ -340,18 +441,32 @@ const goToRegister = () => {
   max-width: 800px;
   padding: 0 20px;
 }
+
+/* 渐显上浮动画 */
+.fade-up {
+  animation: fadeUpAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUpAnim {
+  0% { opacity: 0; transform: translateY(40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .hero-title {
-  font-size: 64px;
+  font-size: 72px;
   font-weight: 700;
   color: #1d1d1f;
-  letter-spacing: -1.5px;
+  letter-spacing: -2px;
   margin-bottom: 24px;
   line-height: 1.1;
+  background: linear-gradient(135deg, #1d1d1f 0%, #434345 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .hero-subtitle {
   font-size: 22px;
-  color: #424245;
-  line-height: 1.5;
+  color: #86868b;
+  line-height: 1.6;
   margin-bottom: 48px;
   font-weight: 400;
 }
@@ -359,12 +474,12 @@ const goToRegister = () => {
   background: #0a84ff;
   color: white;
   border: none;
-  padding: 16px 48px;
+  padding: 18px 56px;
   border-radius: 30px;
   font-size: 18px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .hero-btn:hover {
   background: #007aff;
@@ -435,7 +550,7 @@ const goToRegister = () => {
   font-weight: 700;
   color: #1d1d1f;
   margin-bottom: 24px;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
 }
 .feature-desc {
   font-size: 20px;
@@ -452,16 +567,24 @@ const goToRegister = () => {
 .feature-image {
   max-width: 100%;
   border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-  transition: transform 0.5s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .feature-image:hover {
-  transform: translateY(-10px);
+  transform: translateY(-15px) scale(1.02);
+}
+
+/* 简单的滚动视差效果类 */
+.reveal {
+  animation: fadeUpAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.reveal-delay {
+  animation: fadeUpAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+  opacity: 0;
 }
 
 /* ================== 第四屏：数据与页脚 ================== */
 .footer-section {
-  background-color: #ffffff;
   justify-content: space-between;
 }
 .data-feature {
@@ -470,24 +593,30 @@ const goToRegister = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   padding: 100px 40px 0;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+}
+.text-center {
+  text-align: center;
 }
 .data-image {
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   margin-top: 60px;
   border-radius: 16px 16px 0 0;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.06);
+  transition: transform 0.6s ease;
+}
+.data-image:hover {
+  transform: translateY(-10px);
 }
 
 /* 底部区域 */
 .apple-footer {
   background-color: #f5f5f7;
   padding: 30px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
   width: 100%;
 }
 .footer-content {
@@ -517,7 +646,7 @@ const goToRegister = () => {
   color: rgba(0, 0, 0, 0.2);
 }
 
-/* ================== 高级登录弹窗 Modal ================== */
+/* ================== 高级登录与注册弹窗 Modal + 3D翻转 ================== */
 .login-modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -533,18 +662,54 @@ const goToRegister = () => {
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
 }
-.login-modal-content {
-  position: relative;
+
+/* 3D 透视容器 */
+.perspective-container {
+  perspective: 1500px;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  height: 620px; /* 固定高度以容纳两面的表单 */
+  z-index: 1001;
+  position: relative;
+}
+
+/* 翻转体 */
+.flipper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+/* 每一面的通用样式 */
+.side {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  backface-visibility: hidden;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: saturate(180%) blur(40px);
   -webkit-backdrop-filter: saturate(180%) blur(40px);
   border-radius: 24px;
-  padding: 48px 40px;
+  padding: 40px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-  z-index: 1001;
   border: 1px solid rgba(255, 255, 255, 0.5);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.front {
+  transform: rotateY(0deg);
+}
+
+.back {
+  transform: rotateY(180deg);
 }
 
 .close-btn {
@@ -559,6 +724,7 @@ const goToRegister = () => {
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s ease;
+  z-index: 20;
 }
 .close-btn:hover {
   background: rgba(0, 0, 0, 0.1);
@@ -582,37 +748,104 @@ const goToRegister = () => {
   margin: 0;
 }
 
-/* 高级输入框 */
-.input-group {
-  margin-bottom: 16px;
-}
-.premium-input {
+/* 高级输入框 - 带有悬浮标签动画 */
+.apple-input-group {
+  position: relative;
   width: 100%;
   height: 56px;
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  border: 2px solid transparent;
-  padding: 0 16px;
-  font-size: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.apple-input-group:focus-within {
+  border-color: #0a84ff;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.2);
+}
+
+.apple-floating-label {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #98989d;
+  font-size: 17px;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 10;
+}
+
+.apple-input-group:focus-within .apple-floating-label,
+.apple-input-group.has-value .apple-floating-label {
+  top: 16px;
+  font-size: 12px;
+  color: #86868b;
+}
+
+.premium-input {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  border: none;
+  padding: 18px 16px 0 16px; 
+  font-size: 17px;
   color: #1d1d1f;
   box-sizing: border-box;
   outline: none;
-  transition: all 0.3s ease;
 }
-.premium-input::placeholder {
-  color: #98989d;
+
+/* Vue Element 表单重写，以适应在背面展示 */
+:deep(.el-form-item) {
+  margin-bottom: 16px;
 }
-.premium-input:focus {
-  border-color: #0a84ff;
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15);
+:deep(.el-form-item__error) {
+  padding-top: 4px;
+}
+
+:deep(.el-select) {
+  width: 100%;
+  height: 100%;
+}
+:deep(.el-select__wrapper) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 18px 16px 0 16px !important;
+  min-height: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+:deep(.el-select__placeholder),
+:deep(.el-select__selected-item) {
+  font-size: 17px !important;
+  color: #1d1d1f !important;
+}
+
+/* 注册成功预览 */
+.apple-alert {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.alert-title {
+  font-size: 14px;
+  color: #1d1d1f;
 }
 
 /* 提交按钮 */
 .submit-btn {
   width: 100%;
   height: 52px;
-  margin-top: 16px;
+  margin-top: 24px;
   background: #0a84ff;
   color: white;
   border: none;
@@ -620,7 +853,7 @@ const goToRegister = () => {
   font-size: 17px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 .submit-btn:hover {
   background: #007aff;
@@ -650,25 +883,25 @@ const goToRegister = () => {
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-active .login-modal-content {
+.fade-enter-active .perspective-container {
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.fade-leave-active .login-modal-content {
+.fade-leave-active .perspective-container {
   transition: transform 0.3s ease;
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
-.fade-enter-from .login-modal-content {
+.fade-enter-from .perspective-container {
   transform: translateY(20px) scale(0.95);
 }
-.fade-leave-to .login-modal-content {
+.fade-leave-to .perspective-container {
   transform: translateY(20px) scale(0.95);
 }
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .hero-title { font-size: 40px; }
+  .hero-title { font-size: 48px; }
   .feature-container { flex-direction: column !important; text-align: center; gap: 40px; justify-content: center; }
   .feature-title { font-size: 32px; }
   .landing-header { padding: 0 20px; }

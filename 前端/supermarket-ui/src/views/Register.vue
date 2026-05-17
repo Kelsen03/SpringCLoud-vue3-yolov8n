@@ -1,20 +1,9 @@
 <template>
   <div class="login-page">
-    <!-- 轮播图背景 -->
-    <div class="carousel-background">
-      <div 
-        v-for="(img, index) in bgImages" 
-        :key="index"
-        class="bg-image"
-        :class="{ active: currentBgIndex === index }"
-        :style="{ backgroundImage: `url(${img})` }"
-      ></div>
-    </div>
+    <!-- 极简高级背景 -->
+    <div class="hero-bg"></div>
 
-    <!-- 全屏浅色毛玻璃遮罩 -->
-    <div class="glass-overlay"></div>
-
-    <div class="content-layer">
+    <div class="content-layer fade-up">
       <div class="system-brand">
       <div class="logo-circle">🛒</div>
       <span class="system-name">连锁超市微服务管理系统</span>
@@ -104,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { UserFilled, Platform, Search, Goods } from '@element-plus/icons-vue'
@@ -113,26 +102,6 @@ import request from '@/utils/request'
 const router = useRouter()
 const registerFormRef = ref(null)
 const loading = ref(false)
-
-// 轮播图逻辑
-const bgImages = [
-  'https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-  'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'
-]
-const currentBgIndex = ref(0)
-let bgTimer = null
-
-onMounted(() => {
-  bgTimer = setInterval(() => {
-    currentBgIndex.value = (currentBgIndex.value + 1) % bgImages.length
-  }, 5000)
-})
-
-onUnmounted(() => {
-  if (bgTimer) clearInterval(bgTimer)
-})
 
 const form = reactive({
   name: '',
@@ -240,35 +209,22 @@ const handleRegister = async () => {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-/* 轮播图背景 */
-.carousel-background {
+/* 高级渐变背景 */
+.hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at 50% -20%, #e5e5ea 0%, #f5f5f7 80%);
   z-index: 1;
-  background-color: #f5f5f7;
-}
-.bg-image {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 1.5s ease-in-out, transform 6s linear;
-  transform: scale(1.05);
-}
-.bg-image.active {
-  opacity: 1;
-  transform: scale(1);
 }
 
-/* 全屏浅色毛玻璃遮罩 */
-.glass-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: saturate(180%) blur(25px);
-  -webkit-backdrop-filter: saturate(180%) blur(25px);
-  z-index: 2;
+/* 渐显上浮动画 */
+.fade-up {
+  animation: fadeUpAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeUpAnim {
+  0% { opacity: 0; transform: translateY(40px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 /* 内容层 */

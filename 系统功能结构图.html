@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>连锁超市微服务管理系统 - 功能结构图</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            /* 使用适合论文的字体 */
+            font-family: 'SimSun', '宋体', serif;
+            background-color: #f5f7f9;
+            padding: 50px;
+            display: flex;
+            justify-content: center;
+        }
+        .tree-container {
+            background: #fff;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow-x: auto;
+            border-radius: 8px;
+        }
+
+        /* 树形结构核心 CSS */
+        .tree ul {
+            padding-top: 30px; 
+            position: relative;
+            display: flex; 
+            justify-content: center;
+        }
+        .tree li {
+            text-align: center;
+            list-style-type: none;
+            position: relative;
+            padding: 30px 8px 0 8px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+        }
+
+        /* 绘制连接线 */
+        .tree li::before, .tree li::after{
+            content: '';
+            position: absolute; top: 0; right: 50%;
+            border-top: 1px solid #666;
+            width: 50%; height: 30px;
+        }
+        .tree li::after{
+            right: auto; left: 50%;
+            border-left: 1px solid #666;
+        }
+
+        /* 清除特殊情况下的线 */
+        .tree li:only-child::after, .tree li:only-child::before {
+            display: none;
+        }
+        .tree li:only-child{ padding-top: 0;}
+        .tree li:first-child::before, .tree li:last-child::after{
+            border: 0 none;
+        }
+        .tree li:last-child::before{
+            border-right: 1px solid #666;
+            border-radius: 0;
+        }
+        .tree li:first-child::after{
+            border-radius: 0;
+        }
+
+        /* 向下的线 */
+        .tree ul ul::before{
+            content: '';
+            position: absolute; top: 0; left: 50%;
+            border-left: 1px solid #666;
+            width: 0; height: 30px;
+        }
+
+        /* 节点通用样式 */
+        .tree .node {
+            border: 1px solid #333;
+            background: #fff;
+            color: #000;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            position: relative;
+            border-radius: 4px;
+        }
+
+        /* 针对不同层级的特定样式 */
+        
+        /* 1级：根节点 */
+        .level-1 { 
+            padding: 12px 25px; 
+            font-size: 16px; 
+            letter-spacing: 1px;
+        }
+        
+        /* 2级：角色节点 */
+        .level-2 { 
+            padding: 10px 15px; 
+            font-size: 14px; 
+            line-height: 1.4;
+        }
+        
+        /* 3级：模块节点 (竖排文本) */
+        .level-3 { 
+            writing-mode: vertical-lr; 
+            text-orientation: upright; 
+            letter-spacing: 4px; 
+            padding: 15px 5px; 
+            width: 32px; 
+            font-size: 14px; 
+        }
+        
+        /* 4级：叶子节点/功能节点 (竖排文本，且统一大小！) */
+        .level-4 { 
+            writing-mode: vertical-lr; 
+            text-orientation: upright; 
+            letter-spacing: 2px; 
+            padding: 15px 5px; 
+            width: 32px; 
+            height: 160px; /* 强制所有最底部的框高度一致！ */
+            font-size: 13px; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tree-container">
+        <div class="tree">
+            <ul>
+                <li>
+                    <div class="node level-1">连锁超市微服务管理系统</div>
+                    <ul>
+                        <!-- 总部 -->
+                        <li>
+                            <div class="node level-2"><div>总部管理员</div><div>(总部)</div></div>
+                            <ul>
+                                <li>
+                                    <div class="node level-3">全局商品</div>
+                                    <ul>
+                                        <li><div class="node level-4">商品维护定价</div></li>
+                                        <li><div class="node level-4">统一促销配置</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">采购调拨</div>
+                                    <ul>
+                                        <li><div class="node level-4">供应商采购单</div></li>
+                                        <li><div class="node level-4">跨店库存调拨</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">数据分析</div>
+                                    <ul>
+                                        <li><div class="node level-4">门店营业分析</div></li>
+                                        <li><div class="node level-4">财务流水对账</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">系统管理</div>
+                                    <ul>
+                                        <li><div class="node level-4">组织架构维护</div></li>
+                                        <li><div class="node level-4">角色权限分配</div></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                        
+                        <!-- 门店 -->
+                        <li>
+                            <div class="node level-2"><div>门店店长</div><div>(门店)</div></div>
+                            <ul>
+                                <li>
+                                    <div class="node level-3">门店库存</div>
+                                    <ul>
+                                        <li><div class="node level-4">本地商品入库</div></li>
+                                        <li><div class="node level-4">库存盘点预警</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">订单售后</div>
+                                    <ul>
+                                        <li><div class="node level-4">历史订单查询</div></li>
+                                        <li><div class="node level-4">退换货售后处理</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">门店运营</div>
+                                    <ul>
+                                        <li><div class="node level-4">员工排班考勤</div></li>
+                                        <li><div class="node level-4">本地账号权限</div></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- 收银 -->
+                        <li>
+                            <div class="node level-2"><div>前台收银员</div><div>(收银台)</div></div>
+                            <ul>
+                                <li>
+                                    <div class="node level-3">收银工作台</div>
+                                    <ul>
+                                        <li><div class="node level-4">商品扫码录入</div></li>
+                                        <li><div class="node level-4">多渠道聚合支付</div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node level-3">日常操作</div>
+                                    <ul>
+                                        <li><div class="node level-4">购物小票打印</div></li>
+                                        <li><div class="node level-4">会员积分抵扣</div></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @Service
@@ -108,6 +110,29 @@ public class InventoryService {
             inv.setShelfLifeMonths(months);
             inventoryMapper.updateById(inv);
         }
+
+        // 记录补货流水
+        jdbcTemplate.update(
+            "INSERT INTO replenish_record (product_id, product_name, category, store_id, count, production_date, shelf_life_months) VALUES (?,?,?,?,?,?,?)",
+            req.getProductId(), req.getProductName(), req.getCategory(), req.getStoreId(), req.getCount(), pdate, months
+        );
+
+        return "ok";
+    }
+
+    public List<Map<String, Object>> getReplenishHistory(Long storeId) {
+        if (storeId != null && storeId > 0) {
+            return jdbcTemplate.queryForList("SELECT * FROM replenish_record WHERE store_id = ? ORDER BY create_time DESC LIMIT 100", storeId);
+        }
+        return jdbcTemplate.queryForList("SELECT * FROM replenish_record ORDER BY create_time DESC LIMIT 100");
+    }
+
+    public String clearInventory(Long storeId, Long productId) {
+        Inventory inv = inventoryMapper.selectOne(new QueryWrapper<Inventory>()
+                .eq("store_id", storeId).eq("product_id", productId));
+        if (inv == null) return "库存不存在";
+        inv.setStock(0);
+        inventoryMapper.updateById(inv);
         return "ok";
     }
 
