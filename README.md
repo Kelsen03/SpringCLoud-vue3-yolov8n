@@ -171,6 +171,15 @@ mysql -u root -p supermarket_product < product_import.sql
 
 ## 📋 更新日志
 
+### v2.1 (2026-05-17)
+- 补货推荐算法 v4：频率×销量双因子 + ABC 帕累托分类
+- 库存排序：过期→临期→缺货→正常
+- 库存清零：clearInventory 仅归零不删除
+- 条形码：Transfer/Pos 下拉框支持搜索，product/barcode 接口
+- 分析页补货清单 + Excel 导出（xlsx）
+- UTF8mb4 编码修复，保质期按品类 INSERT
+- replenish_record 表记录补货历史
+
 ### v2.0 (2026-05-16)
 - AI：25+ COCO 类别映射，7 种饮料颜色识别，阈值降至 0.35
 - 条形码：`/product/barcode/{code}` 接口 + 前端输入框 + 扫码枪键盘监听
