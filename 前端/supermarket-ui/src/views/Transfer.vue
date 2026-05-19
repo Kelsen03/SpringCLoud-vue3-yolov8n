@@ -130,7 +130,10 @@
               <el-divider />
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <h4 style="margin:0">智能补货推荐 / Smart Replenishment Recommend</h4>
-                <el-button size="small" type="primary" @click="loadRecommend">刷新推荐 / Refresh</el-button>
+                <div>
+                  <el-button size="small" type="success" @click="exportRecommendExcel" style="margin-right: 10px;">导出 EXCEL / Export</el-button>
+                  <el-button size="small" type="primary" @click="loadRecommend">刷新推荐 / Refresh</el-button>
+                </div>
               </div>
               <el-table :data="recommendList" border stripe size="small" max-height="300">
                 <el-table-column label="商品名 / Product" min-width="120">
@@ -277,6 +280,44 @@ const debounce = (fn, delay) => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => fn(...args), delay)
   }
+}
+
+// 导出补货推荐 Excel
+const exportRecommendExcel = () => {
+  if (recommendList.value.length === 0) {
+    ElMessage.warning('暂无需要补货的推荐数据')
+    return
+  }
+  
+  // 1. 构造 CSV 内容
+  let csvContent = '\uFEFF' // BOM，防止中文乱码
+  csvContent += '商品名,门店,当前库存,日均销量,建议补货数量\n'
+  
+  recommendList.value.forEach(row => {
+    const storeName = ['','旗舰店','社区店','生鲜店'][row.store_id] || row.store_id
+    const recommendText = row.recommend_qty > 0 ? '+' + row.recommend_qty : '充足'
+    const rowData = [
+      `"${row.product_name}"`, // 处理可能包含逗号的名称
+      storeName,
+      row.stock,
+      row.daily_sales,
+      recommendText
+    ]
+    csvContent += rowData.join(',') + '\n'
+  })
+  
+  // 2. 创建下载链接并触发下载
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  link.setAttribute('download', `智能补货推荐清单_${new Date().toISOString().slice(0, 10)}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  
+  ElMessage.success('补货清单导出成功')
 }
 
 // 选商品自动填信息

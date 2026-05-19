@@ -1,204 +1,218 @@
 <template>
-  <div class="order-page">
+  <div class="hw-pos-page">
     <!-- ========= 阶段0：未开班 ========= -->
-    <div v-if="!isShiftOpen" class="shift-box">
-      <div class="shift-card">
-        <div class="shift-icon"></div>
-        <h2>收银员交班系统</h2>
-        <p>开始收银前请先开班，输入找零备用金</p>
-        <div class="shift-input">
-          <span class="prefix">¥</span>
-          <input v-model="openingCash" type="number" step="0.01" min="0" placeholder="备用金金额" @keyup.enter="doOpenShift" />
+    <div v-if="!isShiftOpen" class="hw-center-box fade-up">
+      <div class="hw-card">
+        <h2 class="hw-title">SHIFT START / 开班上岗</h2>
+        <p class="hw-subtitle">Input Opening Cash / 输入找零备用金</p>
+        <div class="hw-huge-input">
+          <span>¥</span>
+          <input v-model="openingCash" type="number" step="0.01" min="0" placeholder="0.00" @keyup.enter="doOpenShift" />
         </div>
-        <el-button type="primary" size="large" @click="doOpenShift" :loading="shiftLoading" class="shift-btn">
-          开班上岗
-        </el-button>
-        <p class="hint">备用金 = 收银机里预先放好的零钱，用于给顾客找零</p>
+        <button class="hw-btn hw-btn-dark" @click="doOpenShift" :disabled="shiftLoading">
+          <span class="btn-text">CONFIRM / 确认开班</span>
+        </button>
       </div>
     </div>
 
     <!-- ========= 阶段1：欢迎界面（已开班，未开始收银） ========= -->
-    <div v-else-if="!isStarted" class="welcome-box">
-      <div class="welcome-card">
-        <div class="shift-bar">
-          <el-tag type="success" size="large"> 当班中</el-tag>
-          <span>备用金 ¥{{ shiftOpeningCash }}</span>
-          <el-button type="warning" size="small" plain @click="showCloseDialog = true">交班</el-button>
+    <div v-else-if="!isStarted" class="hw-center-box fade-up">
+      <div class="hw-card">
+        <div class="hw-status-bar">
+          <span class="status-dot pulsing"></span>
+          <span>STATUS: ONLINE / 当班中 | 备用金 ¥{{ shiftOpeningCash }}</span>
+          <button class="hw-text-btn" @click="showCloseDialog = true">CLOSE SHIFT / 交班 ↗</button>
         </div>
-        <div class="welcome-icon"></div>
-        <h2>欢迎使用智能收银系统</h2>
-        <p>请输入会员ID开始收银，散客请直接回车</p>
-        <div class="input-area">
-          <el-input v-model="userId" placeholder="会员ID (可选)" size="large" class="welcome-input" @keyup.enter="startCheckout">
-            <template #prefix><el-icon><User /></el-icon></template>
-          </el-input>
-          <el-button type="primary" size="large" class="start-btn" @click="startCheckout">
-            开始收银 <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-          </el-button>
+        <h2 class="hw-title">CASHIER SYSTEM / 智能收银</h2>
+        <p class="hw-subtitle">Input Member ID or press Enter / 输入会员ID或直接回车</p>
+        <div class="hw-huge-input">
+          <input v-model="userId" placeholder="MEMBER ID / 会员号 (可选)" @keyup.enter="startCheckout" />
         </div>
+        <button class="hw-btn hw-btn-dark" @click="startCheckout">
+          <span class="btn-text">START / 开始收银 ↗</span>
+        </button>
       </div>
     </div>
 
     <!-- ========= 阶段3：结算成功 ========= -->
-    <div v-else-if="isFinished" class="result-box">
-      <el-result icon="success" title="下单成功" sub-title="请核对订单信息">
-        <template #extra>
-          <div class="receipt-card">
-            <div class="receipt-header"><h3>连锁超市购物小票</h3><p>No. {{ orderInfo.id }}</p></div>
-            <div class="receipt-info">
-              <div class="info-row" v-if="orderInfo.storeName"><span>门店：</span><span>{{ orderInfo.storeName }}</span></div>
-              <div class="info-row"><span>会员ID：</span><span>{{ orderInfo.userId || '散客' }}</span></div>
-              <div class="info-row" v-if="orderInfo.userId">
-                <span>本次积分：</span><span style="color:#e6a23c;font-weight:bold">+{{ orderInfo.points }}</span>
-              </div>
+    <div v-else-if="isFinished" class="hw-center-box fade-up">
+      <div class="hw-receipt-card">
+        <h2 class="hw-title">COMPLETED / 结算完成</h2>
+        <p class="hw-subtitle">ORDER SUCCESS / 订单提交成功</p>
+        
+        <div class="receipt-paper">
+          <div class="receipt-head">LKQ.RETAIL RECEIPT / 购物小票</div>
+          <div class="receipt-no">NO. {{ orderInfo.id }}</div>
+          <div class="receipt-row" v-if="orderInfo.storeName"><span>STORE / 门店</span><span>{{ orderInfo.storeName }}</span></div>
+          <div class="receipt-row"><span>MEMBER / 会员</span><span>{{ orderInfo.userId || 'GUEST / 散客' }}</span></div>
+          <div class="receipt-row" v-if="orderInfo.userId"><span>POINTS / 获得积分</span><span>+{{ orderInfo.points }}</span></div>
+          
+          <div class="receipt-divider"></div>
+          
+          <div class="receipt-item" v-for="item in orderInfo.items" :key="item.id">
+            <div class="r-name">{{ item.name }}</div>
+            <div class="r-calc">
+              <span>{{ item.quantity }} x ¥{{ (item.usePromotion ? (item.promotionPrice||item.price) : item.price).toFixed(2) }}</span>
+              <span>¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</span>
             </div>
-            <el-divider border-style="dashed" />
-            <ul class="receipt-items">
-              <li v-for="item in orderInfo.items" :key="item.id">
-                <div class="item-name">{{ item.name }}</div>
-                <div class="item-calc">
-                  <span>{{ item.quantity }} x ¥{{ (item.usePromotion ? (item.promotionPrice||item.price) : item.price).toFixed(2) }}</span>
-                  <span class="item-total">¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</span>
-                </div>
-              </li>
-            </ul>
-            <el-divider border-style="dashed" />
-            <div class="receipt-total"><span>实付金额</span><span class="total-price">¥{{ orderInfo.totalAmount.toFixed(2) }}</span></div>
           </div>
-          <div class="action-buttons">
-            <el-button type="primary" size="large" @click="reset">开始下一单</el-button>
+          
+          <div class="receipt-divider"></div>
+          <div class="receipt-total">
+            <span>TOTAL / 实付</span>
+            <span>¥{{ orderInfo.totalAmount.toFixed(2) }}</span>
           </div>
-        </template>
-      </el-result>
+        </div>
+
+        <button class="hw-btn hw-btn-dark" @click="reset" style="margin-top: 30px;">
+          <span class="btn-text">NEXT ORDER / 下一单 ↗</span>
+        </button>
+      </div>
     </div>
 
     <!-- ========= 阶段2：收银台主界面 ========= -->
-    <div v-else class="pos-container">
-      <div class="pos-header">
-        <div class="member-info">
-          <el-avatar :size="40" style="background:#409EFF;font-size:16px;flex-shrink:0">{{ userId ? '会员' : '散客' }}</el-avatar>
-          <span class="user-id">{{ userId ? 'ID:' + userId : '普通顾客' }}</span>
-          <span class="points" v-if="memberPoints !== null">积分 {{ memberPoints }}</span>
+    <div v-else class="hw-pos-layout fade-up">
+      <!-- 顶部导航 -->
+      <header class="hw-header">
+        <div class="hw-brand">
+          <span class="font-bold">LKQ.RETAIL</span> / POS SYSTEM
         </div>
-        <div class="header-actions">
-          <el-tag type="success">¥{{ shiftOpeningCash }}</el-tag>
-          <el-button @click="showCloseDialog = true" type="warning" plain>交班</el-button>
-          <el-button @click="exitCheckout" type="danger" plain>退出</el-button>
+        <div class="hw-customer">
+          <span class="label">CUSTOMER / 顾客:</span> {{ userId ? userId : 'GUEST / 散客' }}
+          <span v-if="memberPoints !== null" class="pts">| POINTS / 积分: {{ memberPoints }}</span>
         </div>
-      </div>
+        <div class="hw-actions">
+          <span class="cash-badge">OPENING CASH / 备用金: ¥{{ shiftOpeningCash }}</span>
+          <button class="hw-text-btn" @click="showCloseDialog = true">CLOSE SHIFT / 交班 ↗</button>
+          <button class="hw-text-btn danger" @click="exitCheckout">EXIT / 退出 ↗</button>
+        </div>
+      </header>
 
-      <div class="pos-layout">
-        <!-- 左侧：摄像头 + 商品选择 -->
-        <div class="pos-left">
+      <div class="hw-pos-main">
+        <!-- 左侧：工作区 -->
+        <div class="hw-workspace">
           <!-- AI 摄像头 -->
-          <div class="ai-section">
-            <video ref="videoRef" autoplay playsinline class="ai-video"></video>
-            <el-button type="success" @click="captureAndRecognize" :loading="isRecognizing" size="large" style="font-size:20px;padding:14px 48px;margin-top:8px">拍照识别</el-button>
+          <div class="hw-camera-section">
+            <div class="camera-frame">
+              <video ref="videoRef" autoplay playsinline class="ai-video"></video>
+              <div class="camera-overlay"></div>
+            </div>
+            <button class="hw-btn hw-btn-outline" @click="captureAndRecognize" :disabled="isRecognizing">
+              <span class="btn-text">AI RECOGNITION / 智能拍照识别</span>
+            </button>
           </div>
 
-          <el-card shadow="never" class="product-search-card">
-            <!-- 条形码输入 -->
-            <div class="barcode-box">
-              <el-input v-model="barcodeInput" placeholder="条形码（扫码枪自动填写，或手动输入按回车）" size="large" @keyup.enter="onBarcodeEnter" @change="onBarcodeEnter" clearable>
-                <template #prefix>📷</template>
-              </el-input>
+          <!-- 商品检索区 -->
+          <div class="hw-search-section">
+            <div class="hw-input-line">
+              <input v-model="barcodeInput" placeholder="BARCODE / 扫码或输入条形码..." @keyup.enter="onBarcodeEnter" @change="onBarcodeEnter" />
             </div>
-            <!-- 搜索区 -->
-            <div class="search-box">
-              <el-select v-model="currentProductId" filterable placeholder="扫码或搜索商品..." size="large" style="flex:1" popper-class="product-popper">
+            
+            <div class="hw-manual-add">
+              <el-select v-model="currentProductId" filterable placeholder="SEARCH PRODUCT / 搜索商品..." class="hw-select" popper-class="hw-dark-popper">
                 <el-option v-for="item in productList" :key="item.id" :label="(item.barcode||'') + ' ' + item.name" :value="item.id" :disabled="!item.price||item.price<=0">
-                  <div class="product-option">
-                    <span class="opt-name">{{ item.name }}</span>
-                    <span v-if="item.price>0" class="opt-price">¥{{ item.price }}</span>
-                    <el-tag v-else type="danger">未定价</el-tag>
+                  <div class="hw-option">
+                    <span>{{ item.name }}</span>
+                    <span v-if="item.price>0">¥{{ item.price }}</span>
+                    <span v-else class="error">NO PRICE</span>
                   </div>
                 </el-option>
               </el-select>
-              <el-input-number v-model="currentQty" :min="1" size="large" style="width:100px" @keyup.enter="addToCart" />
-              <el-button type="primary" size="large" @click="addToCart" :disabled="!currentProductId" style="font-size:16px;padding:12px 28px"><el-icon><ShoppingCart /></el-icon> 加入</el-button>
+              <el-input-number v-model="currentQty" :min="1" class="hw-number" @keyup.enter="addToCart" />
+              <button class="hw-btn hw-btn-dark small" @click="addToCart" :disabled="!currentProductId">ADD</button>
             </div>
+          </div>
 
-            <!-- 热门商品（按品类取首条，统一高度） -->
-            <div class="quick-products">
-              <div class="section-title">热门商品</div>
-              <div class="product-strip">
-                <div v-for="item in hotProducts" :key="item.id" class="hot-card" @click="quickAdd(item)">
-                  <div class="hot-name">{{ item.name }}</div>
-                  <el-tag type="info">{{ item.category }}</el-tag>
-                  <div class="hot-price">¥{{ item.price.toFixed(2) }}</div>
-                </div>
+          <!-- 热门商品卡片 -->
+          <div class="hw-hot-products">
+            <h3 class="hw-section-title">HOT ITEMS / 热门商品</h3>
+            <div class="hw-grid">
+              <div v-for="item in hotProducts" :key="item.id" class="hw-item-card hover-3d" @click="quickAdd(item)">
+                <div class="cate">{{ item.category }}</div>
+                <div class="name">{{ item.name }}</div>
+                <div class="price">¥{{ item.price.toFixed(2) }}</div>
               </div>
             </div>
-          </el-card>
+          </div>
         </div>
 
-        <!-- 右侧：购物车 -->
-        <div class="pos-right">
-          <div class="cart-panel">
-            <div class="cart-header"><span>购物车</span><el-tag type="info" round>{{ cart.length }} 件</el-tag></div>
-            <div class="cart-list">
-              <el-empty v-if="cart.length===0" description="暂无商品" :image-size="80"></el-empty>
-              <div v-else class="cart-item" v-for="(item, index) in cart" :key="index">
-                <div class="item-main">
-                  <div class="item-title">{{ item.name }}</div>
-                  <el-tag v-if="item.usePromotion" type="danger" effect="plain">促销</el-tag>
-                </div>
-                <div class="item-actions">
-                  <div class="price-calc">
-                    <div class="unit-price">
-                      <el-radio-group v-if="item.promotionPrice && item.promotionPrice<item.price" v-model="item.usePromotion" size="small">
-                        <el-radio-button :label="false">原¥{{ item.price }}</el-radio-button>
-                        <el-radio-button :label="true">促¥{{ item.promotionPrice }}</el-radio-button>
-                      </el-radio-group>
-                      <span v-else>¥{{ item.price }}</span>
-                    </div>
-                    <div class="qty">x {{ item.quantity }}</div>
+        <!-- 右侧：购物车黑底极简风格 -->
+        <div class="hw-cart-panel">
+          <div class="cart-head">
+            <h2>CART / 购物车</h2>
+            <span>{{ cart.length }} ITEMS</span>
+          </div>
+          
+          <div class="cart-body">
+            <div v-if="cart.length===0" class="cart-empty">NO ITEMS / 暂无商品</div>
+            <div v-else class="cart-item" v-for="(item, index) in cart" :key="index">
+              <div class="c-info">
+                <div class="c-name">{{ item.name }} <span v-if="item.usePromotion" class="promo-tag">PROMO</span></div>
+                <div class="c-calc">
+                  <div class="c-price-sel">
+                    <el-radio-group v-if="item.promotionPrice && item.promotionPrice<item.price" v-model="item.usePromotion" size="small" class="hw-radio">
+                      <el-radio-button :label="false">¥{{ item.price }}</el-radio-button>
+                      <el-radio-button :label="true">¥{{ item.promotionPrice }}</el-radio-button>
+                    </el-radio-group>
+                    <span v-else>¥{{ item.price }}</span>
                   </div>
-                  <div class="subtotal">¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</div>
-                  <el-button type="danger" icon="Delete" circle size="small" @click="removeFromCart(index)" plain></el-button>
+                  <span class="c-qty">x {{ item.quantity }}</span>
                 </div>
               </div>
-            </div>
-            <div class="cart-footer">
-              <div class="points-row" v-if="memberPoints!==null && canUsePoints">
-                <el-checkbox v-model="usePoints" border class="points-check">
-                  <span class="check-label">积分抵扣</span><span class="check-desc">-¥5.00 (消耗1000积分)</span>
-                </el-checkbox>
+              <div class="c-right">
+                <div class="c-subtotal">¥{{ ((item.usePromotion ? (item.promotionPrice||item.price) : item.price) * item.quantity).toFixed(2) }}</div>
+                <button class="c-del" @click="removeFromCart(index)">✕</button>
               </div>
-              <div class="total-row">
-                <span class="label">应付金额</span>
-                <span class="amount">¥{{ (usePoints ? totalAmount-5 : totalAmount).toFixed(2) }}</span>
-              </div>
-              <el-button type="success" class="checkout-btn" @click="submitOrder" :disabled="cart.length===0">立即结算</el-button>
             </div>
+          </div>
+
+          <div class="cart-foot">
+            <div class="c-points" v-if="memberPoints!==null && canUsePoints">
+              <el-checkbox v-model="usePoints" class="hw-checkbox">
+                USE POINTS / 使用积分 (-¥5.00 / 1000 PTS)
+              </el-checkbox>
+            </div>
+            <div class="c-total">
+              <span>TOTAL / 应付</span>
+              <span class="amount">¥{{ (usePoints ? totalAmount-5 : totalAmount).toFixed(2) }}</span>
+            </div>
+            <button class="hw-btn hw-btn-light block" @click="submitOrder" :disabled="cart.length===0">
+              <span class="btn-text">CHECKOUT / 结算 ↗</span>
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ========= 交班对账弹窗 ========= -->
-    <el-dialog v-model="showCloseDialog" title="交班对账" width="450px" :close-on-click-modal="false">
-      <div class="close-content" v-if="closeResult">
-        <el-result icon="success" title="交班完成" sub-title="请核对以下对账信息" />
-        <table class="close-table">
-          <tr><td>开班备用金</td><td>¥{{ closeResult.openingCash }}</td></tr>
-          <tr><td>系统现金收入</td><td>¥{{ closeResult.systemCash }}</td></tr>
-          <tr><td>系统在线支付</td><td>¥{{ closeResult.systemOnline }}</td></tr>
-          <tr><td>总订单数</td><td>{{ closeResult.totalOrders }} 笔</td></tr>
-          <tr class="highlight"><td>理论应有现金</td><td>¥{{ closeResult.theoryCash }}</td></tr>
-          <tr class="highlight"><td>实际清点现金</td><td>¥{{ closeResult.closingCash }}</td></tr>
-          <tr :class="Math.abs(closeResult.diff)>0.01 ? 'diff-red':'diff-ok'">
-            <td>差异</td><td>¥{{ closeResult.diff }}</td>
-          </tr>
-        </table>
-        <el-button type="primary" @click="finishShift" style="width:100%;margin-top:20px">确认退出登录</el-button>
-      </div>
-      <div v-else>
-        <p style="text-align:center;color:#606266;margin-bottom:20px">请清点收银机中的现金，输入实际金额</p>
-        <div class="shift-input"><span class="prefix">¥</span>
-          <input v-model="closingCash" type="number" step="0.01" min="0" placeholder="实际现金" @keyup.enter="doCloseShift" />
+    <!-- ========= 交班对账弹窗 (极简黑白) ========= -->
+    <el-dialog v-model="showCloseDialog" title="CLOSE SHIFT / 交班对账" width="500px" :close-on-click-modal="false" custom-class="hw-dialog">
+      <div class="hw-close-content" v-if="closeResult">
+        <h2 class="hw-title small">SHIFT COMPLETED</h2>
+        <div class="hw-receipt-paper">
+          <div class="r-row"><span>备用金 (OPENING)</span><span>¥{{ closeResult.openingCash }}</span></div>
+          <div class="r-row"><span>系统现金 (SYS CASH)</span><span>¥{{ closeResult.systemCash }}</span></div>
+          <div class="r-row"><span>在线支付 (ONLINE)</span><span>¥{{ closeResult.systemOnline }}</span></div>
+          <div class="r-row"><span>总单数 (ORDERS)</span><span>{{ closeResult.totalOrders }}</span></div>
+          <div class="hw-divider"></div>
+          <div class="r-row bold"><span>应有现金 (THEORY)</span><span>¥{{ closeResult.theoryCash }}</span></div>
+          <div class="r-row bold"><span>实点现金 (ACTUAL)</span><span>¥{{ closeResult.closingCash }}</span></div>
+          <div class="r-row giant" :class="Math.abs(closeResult.diff)>0.01 ? 'error':'success'">
+            <span>差异 (DIFF)</span><span>¥{{ closeResult.diff }}</span>
+          </div>
         </div>
-        <el-button type="primary" @click="doCloseShift" :loading="shiftLoading" style="width:100%;margin-top:15px">确认交班</el-button>
+        <button class="hw-btn hw-btn-dark block" @click="finishShift" style="margin-top:20px">
+          <span class="btn-text">LOGOUT / 确认退出 ↗</span>
+        </button>
+      </div>
+      <div v-else class="hw-close-input">
+        <p class="hw-subtitle">ACTUAL CASH / 输入收银机实点现金</p>
+        <div class="hw-huge-input">
+          <span>¥</span>
+          <input v-model="closingCash" type="number" step="0.01" min="0" placeholder="0.00" @keyup.enter="doCloseShift" />
+        </div>
+        <button class="hw-btn hw-btn-dark block" @click="doCloseShift" :disabled="shiftLoading" style="margin-top:30px">
+          <span class="btn-text">CONFIRM / 确认交班 ↗</span>
+        </button>
       </div>
     </el-dialog>
   </div>
@@ -484,121 +498,254 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.order-page { height:100% }
-
-/* 开班页 */
-.shift-box { display:flex;justify-content:center;align-items:center;height:80vh }
-.shift-card { text-align:center;background:#fff;padding:50px 60px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);max-width:450px;width:100% }
-.shift-icon { font-size:56px;margin-bottom:16px }
-.shift-card h2 { color:#303133;margin-bottom:8px }
-.shift-card p { color:#909399;margin-bottom:24px }
-.shift-input { display:flex;align-items:center;background:#f5f7fa;border:1px solid #dcdfe6;border-radius:8px;padding:12px 16px;margin-bottom:16px }
-.shift-input .prefix { font-size:22px;color:#67c23a;font-weight:bold;margin-right:8px }
-.shift-input input { flex:1;border:none;outline:none;background:transparent;font-size:28px;color:#303133;width:100% }
-.shift-btn { width:100%;height:48px;font-size:17px;font-weight:600;border-radius:8px }
-.hint { font-size:12px;color:#c0c4cc;margin-top:12px }
-
-/* 欢迎页班次条 */
-.shift-bar { display:flex;align-items:center;gap:12px;background:#f0f9eb;padding:10px 16px;border-radius:8px;margin-bottom:24px }
-
-/* 收银台 */
-.pos-container { display:flex;flex-direction:column;height:calc(100vh - 60px);gap:8px;padding:0 }
-.pos-layout { display:flex;gap:10px;flex:1;overflow:hidden; }
-.pos-left { flex:1;display:flex;flex-direction:column;min-width:0 }
-.product-search-card { height:100%;display:flex;flex-direction:column }
-:deep(.product-search-card .el-card__body) { padding:6px 8px }
-/* AI 摄像头区域 */
-.ai-section { text-align:center;padding:2px 0;margin-bottom:6px }
-.ai-video { width:100%;max-width:560px;border:3px solid #333;border-radius:8px;background:#1a1a1a;display:block;margin:0 auto }
-.pos-header { display:flex;align-items:center;background:#fff;padding:10px 0;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.04);gap:10px;width:100% }
-.pos-header .user-id { font-size:20px;white-space:nowrap }
-.pos-header .points { font-size:14px }
-.pos-header .el-tag { font-size:14px;padding:5px 10px;flex-shrink:0 }
-.pos-header .el-button { font-size:14px;padding:6px 12px;flex-shrink:0 }
-.member-info { display:flex;align-items:center;gap:12px;flex:1;min-width:0 }
-.header-actions { display:flex;align-items:center;gap:6px;width:460px;flex-shrink:0;justify-content:flex-end }
-.header-actions { display:flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap }
-.pos-header .el-button { font-size:16px;padding:8px 16px }
-.pos-header .el-button + .el-button { margin-left:0 }
-.barcode-box { margin-bottom:6px }
-.search-box { display:flex;gap:6px;margin-bottom:6px }
-.quick-products { flex:1;overflow-y:auto }
-.product-strip { display:grid;grid-template-columns:repeat(5, 1fr);gap:8px }
-.hot-card { background:#fff;border:1px solid #ebeef5;border-radius:8px;padding:12px 8px;cursor:pointer;text-align:center }
-.hot-card:hover { border-color:#67c23a;box-shadow:0 2px 6px rgba(103,194,58,.1) }
-.hot-name { font-weight:600;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;color:#303133 }
-.hot-price { color:#f56c6c;font-weight:bold;font-size:18px }
-.barcode-box { margin-bottom:8px }
-.barcode-box :deep(.el-input__inner) { font-size:16px !important }
-.search-box :deep(.el-input__inner) { font-size:15px !important }
-.section-title { font-size:18px;font-weight:bold;color:#303133;margin-bottom:10px }
-.hot-price { color:#f56c6c;font-weight:bold;font-size:18px }
-
-.pos-right { width:460px;display:flex;flex-direction:column;flex-shrink:0 }
-.cart-panel { background:#fff;border-radius:8px;display:flex;flex-direction:column;height:100%;box-shadow:0 4px 12px rgba(0,0,0,.05) }
-.cart-header { padding:14px 18px;border-bottom:1px solid #ebeef5;display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:16px }
-.cart-list { flex:1;overflow-y:auto;padding:10px }
-.cart-item { background:#fcfcfc;border:1px solid #ebeef5;border-radius:6px;padding:12px;margin-bottom:8px }
-.item-main { display:flex;justify-content:space-between;margin-bottom:6px }
-.item-title { font-weight:500 }
-.item-actions { display:flex;justify-content:space-between;align-items:center }
-.price-calc { display:flex;align-items:center;gap:8px;font-size:12px;color:#909399 }
-.subtotal { font-weight:bold;color:#f56c6c;font-size:15px }
-.cart-footer { padding:16px 20px;background:#fff;border-top:1px solid #ebeef5 }
-.points-row { margin-bottom:12px;padding:8px;background:#fdf6ec;border-radius:4px }
-.check-label { font-weight:bold;color:#e6a23c }
-.check-desc { font-size:12px;color:#909399;margin-left:5px }
-.total-row { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px }
-.total-row .label { font-size:16px;color:#606266 }
-.total-row .amount { font-size:28px;font-weight:bold;color:#f56c6c }
-.checkout-btn { width:100%;height:56px;font-size:20px;font-weight:bold;border-radius:25px;letter-spacing:2px }
-
-/* 交班对账 */
-.close-table { width:100%;border-collapse:collapse;margin-top:12px }
-.close-table td { padding:8px 12px;border-bottom:1px solid #ebeef5 }
-.close-table td:first-child { color:#909399 }
-.close-table td:last-child { text-align:right;font-weight:bold }
-.close-table .highlight td { font-size:18px;color:#303133 }
-.diff-red td { color:#f56c6c }
-.diff-ok td { color:#67c23a }
-
-/* 复用样式 */
-.product-option { display:flex;justify-content:space-between;width:100% }
-.opt-name { font-size:15px }
-.opt-price { color:#f56c6c;font-size:15px }
-.user-id { font-size:16px;font-weight:600 }
-.result-box { display:flex;justify-content:center;padding-top:40px }
-.receipt-card { width:400px;background:#fff;padding:24px;border:1px solid #ebeef5;box-shadow:0 4px 12px rgba(0,0,0,.05);margin-bottom:20px }
-.receipt-header { text-align:center;margin-bottom:16px }
-.receipt-header h3 { margin:0 0 4px }
-.receipt-info { font-size:15px;color:#606266;margin-bottom:16px }
-.info-row { display:flex;justify-content:space-between;margin-bottom:4px }
-.receipt-items { list-style:none;padding:0;margin:16px 0 }
-.receipt-items li { margin-bottom:8px }
-.item-name { font-weight:500;margin-bottom:2px }
-.item-calc { display:flex;justify-content:space-between;font-size:15px;color:#909399 }
-.item-total { color:#303133 }
-.receipt-total { display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:18px;font-weight:bold }
-.total-price { color:#f56c6c;font-size:22px }
-.action-buttons { text-align:center }
-
-/* 欢迎页 */
-.welcome-box { display:flex;justify-content:center;align-items:center;height:80vh }
-.welcome-card { width:500px;padding:50px;text-align:center;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.05) }
-.welcome-icon { font-size:56px;margin-bottom:16px }
-.welcome-card h2 { color:#303133;margin-bottom:8px }
-.welcome-card p { color:#909399;margin-bottom:32px }
-.input-area { display:flex;gap:10px }
-.start-btn { flex-shrink:0 }
-
-@media (max-width:768px) {
-  .pos-layout { flex-direction:column;overflow:visible }
-  .pos-right { width:100% }
-  .cart-panel { height:400px }
-  .welcome-card { width:90%;padding:30px 20px }
-  .input-area { flex-direction:column }
-  .start-btn { width:100% }
-  .product-strip { grid-template-columns:repeat(auto-fill, minmax(100px,1fr)) }
-  .shift-card { padding:30px 24px }
+/* 渡邊浩樹风格极简黑白 UI */
+.hw-pos-page {
+  height: 100vh;
+  background-color: #f7f7f7;
+  color: #111;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
 }
+
+/* 动画 */
+.fade-up { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 居中大卡片（开班、欢迎、结算成功） */
+.hw-center-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+.hw-card, .hw-receipt-card {
+  width: 500px;
+  background: #fff;
+  padding: 60px 50px;
+  border-radius: 2px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+  text-align: center;
+}
+.hw-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+}
+.hw-title.small { font-size: 24px; }
+.hw-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+/* 巨大输入框 */
+.hw-huge-input {
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid #111;
+  margin-bottom: 40px;
+  padding-bottom: 10px;
+}
+.hw-huge-input span {
+  font-size: 32px;
+  font-weight: bold;
+  margin-right: 15px;
+}
+.hw-huge-input input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 32px;
+  font-weight: bold;
+  color: #111;
+  width: 100%;
+}
+.hw-huge-input input::placeholder { color: #ccc; font-weight: normal; font-size: 24px; }
+
+/* 按钮通用 */
+.hw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 32px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0;
+}
+.hw-btn.block { width: 100%; }
+.hw-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.hw-btn-dark { background: #111; color: #fff; }
+.hw-btn-dark:hover:not(:disabled) { background: #333; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+.hw-btn-light { background: #fff; color: #111; border: 1px solid #111; }
+.hw-btn-light:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-2px); }
+.hw-btn-outline { background: transparent; color: #111; border: 2px solid #111; }
+.hw-btn-outline:hover:not(:disabled) { background: #111; color: #fff; }
+
+.hw-text-btn {
+  background: transparent;
+  border: none;
+  font-weight: bold;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  color: #111;
+  padding: 5px 10px;
+  transition: opacity 0.3s;
+}
+.hw-text-btn:hover { opacity: 0.6; }
+.hw-text-btn.danger { color: #d93025; }
+
+/* 状态条 */
+.hw-status-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0f0f0;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+.status-dot { width: 8px; height: 8px; background: #34a853; border-radius: 50%; }
+.pulsing { animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,168,83,0.4); } 70% { box-shadow: 0 0 0 6px rgba(52,168,83,0); } 100% { box-shadow: 0 0 0 0 rgba(52,168,83,0); } }
+
+/* 购物小票风格 */
+.receipt-paper, .hw-receipt-paper {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 30px;
+  text-align: left;
+  font-family: 'Courier New', Courier, monospace;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+}
+.receipt-head { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+.receipt-no { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
+.receipt-row, .r-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.r-row.bold { font-weight: bold; font-size: 14px; }
+.r-row.giant { font-size: 18px; font-weight: bold; margin-top: 10px; }
+.r-row.giant.error { color: #d93025; }
+.r-row.giant.success { color: #34a853; }
+.receipt-divider, .hw-divider { border-top: 1px dashed #ccc; margin: 15px 0; }
+.receipt-item { margin-bottom: 12px; }
+.r-name { font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+.r-calc { display: flex; justify-content: space-between; font-size: 13px; color: #666; }
+.receipt-total { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-top: 20px; }
+
+/* 主收银界面布局 */
+.hw-pos-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+}
+.hw-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px 20px 20px;
+  border-bottom: 2px solid #111;
+  margin-bottom: 20px;
+}
+.hw-brand { font-size: 20px; letter-spacing: 1px; }
+.font-bold { font-weight: 900; }
+.hw-customer { font-size: 14px; font-weight: bold; }
+.hw-customer .label { color: #888; }
+.hw-customer .pts { color: #d93025; margin-left: 10px; }
+.hw-actions { display: flex; align-items: center; gap: 15px; }
+.cash-badge { background: #111; color: #fff; padding: 4px 10px; font-size: 12px; font-weight: bold; }
+
+.hw-pos-main {
+  display: flex;
+  flex: 1;
+  gap: 30px;
+  overflow: hidden;
+}
+
+/* 左侧工作区 */
+.hw-workspace { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.hw-camera-section { display: flex; gap: 20px; align-items: stretch; }
+.camera-frame { flex: 1; position: relative; background: #000; border-radius: 2px; overflow: hidden; height: 320px; }
+.ai-video { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+.camera-overlay { position: absolute; inset: 20px; border: 1px solid rgba(255,255,255,0.3); pointer-events: none; }
+.camera-overlay::after { content:''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(52,168,83,0.5); box-shadow: 0 0 10px #34a853; animation: scan 2s linear infinite; }
+@keyframes scan { 0% { transform: translateY(-100px); } 50% { transform: translateY(100px); } 100% { transform: translateY(-100px); } }
+
+.hw-search-section { background: #fff; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); }
+.hw-input-line { border-bottom: 2px solid #111; margin-bottom: 15px; padding-bottom: 8px; }
+.hw-input-line input { width: 100%; border: none; outline: none; font-size: 18px; font-weight: bold; background: transparent; }
+.hw-input-line input::placeholder { color: #bbb; font-weight: normal; }
+
+.hw-manual-add { display: flex; gap: 15px; }
+.hw-select { flex: 1; }
+:deep(.hw-select .el-input__inner) { font-size: 16px; font-weight: bold; height: 44px; }
+.hw-option { display: flex; justify-content: space-between; width: 100%; }
+.hw-option .error { color: #d93025; }
+.hw-number { width: 120px; }
+:deep(.hw-number .el-input__inner) { font-size: 16px; font-weight: bold; height: 44px; }
+
+.hw-hot-products { flex: 1; overflow-y: auto; padding-right: 10px; }
+.hw-section-title { font-size: 14px; font-weight: bold; letter-spacing: 1px; margin-bottom: 15px; color: #888; }
+.hw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+.hw-item-card { background: #fff; padding: 20px 15px; text-align: center; cursor: pointer; border: 1px solid #eee; transition: all 0.3s; }
+.hw-item-card.hover-3d:hover { border-color: #111; transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.08); }
+.hw-item-card .cate { font-size: 10px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+.hw-item-card .name { font-size: 14px; font-weight: bold; margin-bottom: 10px; height: 38px; overflow: hidden; }
+.hw-item-card .price { font-size: 16px; font-weight: 900; color: #111; }
+
+/* 右侧购物车（极简黑底白字风格） */
+.hw-cart-panel {
+  width: 400px;
+  background: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+}
+.cart-head { padding: 30px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+.cart-head h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+.cart-head span { font-size: 12px; background: #fff; color: #111; padding: 4px 8px; font-weight: bold; }
+
+.cart-body { flex: 1; overflow-y: auto; padding: 20px 30px; }
+.cart-empty { text-align: center; color: #555; font-weight: bold; font-size: 14px; margin-top: 50px; letter-spacing: 1px; }
+.cart-item { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #222; }
+.c-info { flex: 1; padding-right: 15px; }
+.c-name { font-size: 15px; font-weight: bold; margin-bottom: 10px; line-height: 1.4; }
+.promo-tag { background: #d93025; color: #fff; font-size: 10px; padding: 2px 4px; margin-left: 5px; vertical-align: middle; }
+.c-calc { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: #aaa; }
+.c-right { text-align: right; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; }
+.c-subtotal { font-size: 16px; font-weight: bold; color: #fff; }
+.c-del { background: transparent; border: none; color: #666; cursor: pointer; font-size: 16px; transition: color 0.3s; }
+.c-del:hover { color: #d93025; }
+
+/* 黑色面板里的单选框样式覆盖 */
+.hw-radio :deep(.el-radio-button__inner) { background: #222; border-color: #444; color: #aaa; padding: 4px 8px; font-size: 12px; }
+.hw-radio :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) { background: #fff; color: #111; border-color: #fff; box-shadow: none; }
+
+.cart-foot { padding: 30px; border-top: 1px solid #333; background: #0a0a0a; }
+.c-points { margin-bottom: 20px; }
+.hw-checkbox :deep(.el-checkbox__label) { color: #aaa; font-size: 12px; font-weight: bold; }
+.hw-checkbox :deep(.el-checkbox__input.is-checked + .el-checkbox__label) { color: #fff; }
+.c-total { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
+.c-total span { font-size: 14px; color: #aaa; font-weight: bold; letter-spacing: 1px; }
+.c-total .amount { font-size: 36px; color: #fff; line-height: 1; }
+
+/* 弹窗覆盖 */
+:deep(.hw-dialog) { border-radius: 0 !important; }
+:deep(.hw-dialog .el-dialog__header) { border-bottom: 2px solid #111; padding-bottom: 15px; margin-right: 0; }
+:deep(.hw-dialog .el-dialog__title) { font-weight: 800; letter-spacing: 1px; }
 </style>

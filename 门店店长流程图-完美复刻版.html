@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>总部管理员业务流程图</title>
+    <title>门店店长业务流程图</title>
     <style>
         body {
             font-family: 'SimSun', '宋体', serif;
@@ -90,7 +90,7 @@
         #n2 { top: 120px; left: 340px; } /* 登录页面 */
         
         #n3 { top: 210px; left: 360px; } /* 是否有账号 */
-        #n4 { top: 230px; left: 550px; } /* 联系运维 */
+        #n4 { top: 230px; left: 550px; } /* 联系总部 */
         
         #n5 { top: 330px; left: 340px; height: 50px;} /* 输入账号密码 */
         
@@ -99,13 +99,13 @@
         #n7 { top: 450px; left: 130px; } /* 账号不存在 */
         #n8 { top: 450px; left: 550px; } /* 密码错误 */
         
-        #n9 { top: 560px; left: 340px; } /* 管理控制台 */
+        #n9 { top: 560px; left: 340px; } /* 门店专属后台 */
         
         /* 四个并列核心业务 */
-        #n10 { top: 680px; left: 70px; } /* 全局商品维护 */
-        #n11 { top: 680px; left: 250px; } /* 跨区库存调拨 */
-        #n12 { top: 680px; left: 430px; } /* 销售数据分析 */
-        #n18 { top: 680px; left: 610px; } /* 门店账号配置 */
+        #n10 { top: 680px; left: 70px; } 
+        #n11 { top: 680px; left: 250px; } 
+        #n12 { top: 680px; left: 430px; } 
+        #n18 { top: 680px; left: 610px; } 
         
         /* 四个并列合法性校验 */
         #n13 { top: 780px; left: 90px; }
@@ -113,7 +113,7 @@
         #n15 { top: 780px; left: 450px; }
         #n19 { top: 780px; left: 630px; }
         
-        #n16 { top: 940px; left: 340px; } /* 返回管理控制台 */
+        #n16 { top: 940px; left: 340px; } /* 返回门店专属后台 */
         
         #n17 { top: 1050px; } /* 退出系统 */
 
@@ -158,31 +158,31 @@
     
     <div id="n2" class="node process">登录页面</div>
     
-    <div id="n3" class="node condition"><div class="condition-text">是否有内部<br>预设凭证</div></div>
+    <div id="n3" class="node condition"><div class="condition-text">是否有内部<br>分配账号</div></div>
     
-    <div id="n4" class="node process">联系运维分配</div>
+    <div id="n4" class="node process">联系总部申请</div>
     
     <div id="n5" class="node process">输入账号<br>密码登录</div>
     
-    <div id="n6" class="node condition"><div class="condition-text">身份核验</div></div>
+    <div id="n6" class="node condition"><div class="condition-text">身份与<br>门店核验</div></div>
     
     <div id="n7" class="node io"><div class="io-text">提示账号<br>不存在</div></div>
     
     <div id="n8" class="node io"><div class="io-text">提示密码错误<br>请重新输入</div></div>
     
-    <div id="n9" class="node process">管理控制台</div>
+    <div id="n9" class="node process">门店专属后台</div>
     
-    <div id="n10" class="node process">全局商品维护</div>
-    <div id="n11" class="node process">跨区库存调拨</div>
-    <div id="n12" class="node process">销售数据分析</div>
-    <div id="n18" class="node process">门店账号配置</div>
+    <div id="n10" class="node process">本地库存与调拨</div>
+    <div id="n11" class="node process">收银员账号管理</div>
+    <div id="n12" class="node process">订单检索与对账</div>
+    <div id="n18" class="node process">门店经营分析</div>
     
-    <div id="n13" class="node condition"><div class="condition-text">合法性<br>校验</div></div>
-    <div id="n14" class="node condition"><div class="condition-text">合法性<br>校验</div></div>
-    <div id="n15" class="node condition"><div class="condition-text">合法性<br>校验</div></div>
-    <div id="n19" class="node condition"><div class="condition-text">合法性<br>校验</div></div>
+    <div id="n13" class="node condition"><div class="condition-text">数据域与<br>合法性校验</div></div>
+    <div id="n14" class="node condition"><div class="condition-text">数据域与<br>合法性校验</div></div>
+    <div id="n15" class="node condition"><div class="condition-text">数据域与<br>合法性校验</div></div>
+    <div id="n19" class="node condition"><div class="condition-text">数据域与<br>合法性校验</div></div>
     
-    <div id="n16" class="node process">管理控制台</div>
+    <div id="n16" class="node process">门店专属后台</div>
     
     <div id="n17" class="node start-end">退出系统</div>
 

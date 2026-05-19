@@ -82,23 +82,25 @@ flowchart TD
     %% 定义节点
     Start([进入系统]):::startEnd
     LoginPage[登录页面]:::process
-    HasAccount{是否有账号}:::condition
+    HasAccount{是否有内部<br>预设凭证}:::condition
     InputInfo[输入账号密码]:::process
-    CheckInfo{校验账号密码}:::condition
+    CheckInfo{身份核验}:::condition
     
     ErrorAccount[/提示账号不存在/]:::io
     ErrorPwd[/提示密码错误/]:::io
-    ContactAdmin[联系系统维护人员]:::process
+    ContactAdmin[联系运维分配]:::process
     
-    MainPanel[管理员界面]:::process
+    MainPanel[管理控制台]:::process
     
-    ActionAdd[添加信息]:::process
-    ActionUpdate[修改信息]:::process
-    ActionDelete[删除信息]:::process
+    ActionAdd[全局商品维护]:::process
+    ActionUpdate[跨区库存调拨]:::process
+    ActionDelete[销售数据分析]:::process
+    ActionConfig[门店账号配置]:::process
     
-    CheckAdd{是否成功}:::condition
-    CheckUpdate{是否成功}:::condition
-    CheckDelete{是否成功}:::condition
+    CheckAdd{合法性校验}:::condition
+    CheckUpdate{合法性校验}:::condition
+    CheckDelete{合法性校验}:::condition
+    CheckConfig{合法性校验}:::condition
     
     End([退出系统]):::startEnd
 
@@ -116,11 +118,12 @@ flowchart TD
     CheckInfo -- 密码错误 --> ErrorPwd
     ErrorPwd --> InputInfo
     
-    CheckInfo -- 验证通过 --> MainPanel
+    CheckInfo -- 核验通过 --> MainPanel
     
     MainPanel --> ActionAdd
     MainPanel --> ActionUpdate
     MainPanel --> ActionDelete
+    MainPanel --> ActionConfig
     
     ActionAdd --> CheckAdd
     CheckAdd -- 失败 --> ActionAdd
@@ -130,10 +133,14 @@ flowchart TD
     
     ActionDelete --> CheckDelete
     CheckDelete -- 失败 --> ActionDelete
+
+    ActionConfig --> CheckConfig
+    CheckConfig -- 失败 --> ActionConfig
     
     CheckAdd -- 成功 --> MainPanel
     CheckUpdate -- 成功 --> MainPanel
     CheckDelete -- 成功 --> MainPanel
+    CheckConfig -- 成功 --> MainPanel
     
     MainPanel --> End
         </div>
