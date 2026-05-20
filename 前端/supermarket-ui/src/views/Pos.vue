@@ -105,7 +105,7 @@
           <!-- 商品检索区 -->
           <div class="hw-search-section">
             <div class="hw-input-line">
-              <input v-model="barcodeInput" placeholder="BARCODE / 扫码或输入条形码..." @keyup.enter="onBarcodeEnter" @change="onBarcodeEnter" />
+              <input v-model="barcodeInput" placeholder="BARCODE / 扫码或输入条形码..." @keyup.enter="onBarcodeEnter" />
             </div>
             
             <div class="hw-manual-add">
