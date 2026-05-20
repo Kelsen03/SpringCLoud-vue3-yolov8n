@@ -17,9 +17,16 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.supermarket.auth.mapper.StoreMapper storeMapper;
+
     @Override
     public void run(String... args) {
         String encodedPassword = passwordEncoder.encode("123456");
+
+        initStore(1L, "旗舰店（一号门店）");
+        initStore(2L, "社区店（二号门店）");
+        initStore(3L, "生鲜店（三号门店）");
 
         initUser("admin", encodedPassword, "HQ", "超级管理员", 0);
         initUser("store1", encodedPassword, "STORE", "一号门店店长", 1);
@@ -38,6 +45,16 @@ public class DataInitializer implements CommandLineRunner {
             user.setRealName(realName);
             user.setStoreId(storeId);
             userMapper.insert(user);
+        }
+    }
+
+    private void initStore(Long id, String name) {
+        com.supermarket.auth.entity.Store store = storeMapper.selectById(id);
+        if (store == null) {
+            store = new com.supermarket.auth.entity.Store();
+            store.setId(id);
+            store.setName(name);
+            storeMapper.insert(store);
         }
     }
 }

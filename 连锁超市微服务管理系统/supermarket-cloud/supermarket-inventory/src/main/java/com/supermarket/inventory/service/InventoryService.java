@@ -47,12 +47,20 @@ public class InventoryService {
         if (months == null) {
             String cat = req.getCategory();
             if (cat != null) {
-                if (cat.contains("饮料") || cat.contains("饮用水") || cat.contains("乳制品")) {
+                if (cat.contains("烘焙") || cat.contains("面点")) {
+                    months = 1;
+                } else if (cat.contains("乳制品")) {
+                    months = 6;
+                } else if (cat.contains("饮料") || cat.contains("饮用水") || cat.contains("冷冻")) {
+                    months = 9;
+                } else if (cat.contains("零食") || cat.contains("谷物") || cat.contains("方便面") || cat.contains("熟食") || cat.contains("生鲜")) {
                     months = 12;
-                } else if (cat.contains("方便面") || cat.contains("熟食") || cat.contains("生鲜")) {
-                    months = 12;
-                } else if (cat.contains("纸品") || cat.contains("个护")) {
+                } else if (cat.contains("主粮") || cat.contains("干货")) {
+                    months = 18;
+                } else if (cat.contains("调味品") || cat.contains("罐头")) {
                     months = 24;
+                } else if (cat.contains("纸品") || cat.contains("个护") || cat.contains("酒类")) {
+                    months = 36;
                 } else {
                     months = 12;
                 }

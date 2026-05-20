@@ -16,8 +16,6 @@ import java.util.Map;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.CompletableFuture;
-
 @RestController
 @RequestMapping("/inventory")
 public class InventoryController {

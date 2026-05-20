@@ -35,7 +35,7 @@ public class ProductController {
         }
 
         try {
-            // 1. 调用 Python AI 微服务进行 YOLOv5 图像识别
+            // 1. 调用 Python AI 微服务进行 YOLOv8 图像识别
             RestTemplate restTemplate = new RestTemplate();
             String pythonAiUrl = "http://localhost:5000/api/detect"; // Python 服务地址
             

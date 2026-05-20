@@ -18,14 +18,7 @@ public interface OrderMapper extends BaseMapper<Order> {
             "WHERE o.create_by = #{username} AND o.create_time >= #{since}")
     Map<String, Object> getShiftStats(@Param("username") String username, @Param("since") Date since);
 
-    /** 查门店名称（兜底：无store表时用固定映射） */
-    default String getStoreName(Long storeId) {
-        if (storeId == null) return "总部";
-        switch (storeId.intValue()) {
-            case 1: return "旗舰店（一号门店）";
-            case 2: return "社区店（二号门店）";
-            case 3: return "生鲜店（三号门店）";
-            default: return "门店" + storeId;
-        }
-    }
+    /** 查门店名称（跨库查 supermarket_auth.store） */
+    @Select("SELECT name FROM supermarket_auth.store WHERE id = #{storeId}")
+    String getStoreName(@Param("storeId") Long storeId);
 }
