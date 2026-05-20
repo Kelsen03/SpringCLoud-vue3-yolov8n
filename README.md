@@ -194,7 +194,7 @@ mysql -u root -p supermarket_product < product_import.sql
 - AI：确认 6 色系通道 → 7 种饮料 + 21 条 COCO 商品映射
 - 偏好分析：堆叠柱状图 → 雷达图
 - 系统开发流程图拖拽编辑器
-- 论文第五章完整版 Markdown
+
 
 ### v2.2 (2026-05-17)
 - 渡边极简黑白 UI：Lenis 平滑滚动 + 自定义光标 + Landing 页面
