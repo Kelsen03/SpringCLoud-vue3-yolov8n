@@ -171,6 +171,12 @@ mysql -u root -p supermarket_product < product_import.sql
 
 ## 📋 更新日志
 
+### v3.0 (2026-05-20)
+- YOLOv8n 迁移学习微调：自建 218 张 10 类商品数据集，RTX 4060 GPU 训练
+- 端到端识别替代 HSV 颜色分析，ai_server.py 精简至 60 行
+- NAME_MAP 英文类名→中文商品名映射
+- 新增训练损失曲线 + 混淆矩阵论文图表
+
 ### v2.3 (2026-05-17)
 - AI：确认 6 色系通道 → 7 种饮料 + 21 条 COCO 商品映射
 - 偏好分析：堆叠柱状图 → 雷达图
