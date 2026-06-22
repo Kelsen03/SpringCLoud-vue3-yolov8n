@@ -190,10 +190,6 @@ mysql -u root -p supermarket_product < product_import.sql
 │       ├── supermarket-inventory/
 │       ├── supermarket-order/
 │       └── supermarket-analysis/
-│
-└── 论文/
-    ├── 图/                  # ER图、流程图等
-    └── 材料整理/            # 参考文献
 ```
 
 ---
@@ -208,7 +204,6 @@ mysql -u root -p supermarket_product < product_import.sql
 - **遮挡救援机制**：检出 < 3 个时自动二次检索，阈值减半捞回被遮挡商品
 - **HSV 颜色子类分析**：乐事薯片根据包装主色调区分原味（黄）与青柠味（绿）
 - **NAME_MAP 精确化**：映射至数据库商品全名（含规格），如"可口可乐 500ml"
-- **论文参考**：借鉴 Jiang(2025) 注意力机制思路，从后处理层面创新解决遮挡与误检问题
 
 ### v3.1 (2026-05-21)
 - **store 门店表**：新增 `store` 表 + Store 实体 + StoreMapper
