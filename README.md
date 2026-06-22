@@ -1,6 +1,6 @@
 # 连锁超市微服务管理系统
 
-基于 **Spring Cloud Alibaba + Vue3 + YOLOv8** 的连锁超市综合管理平台，涵盖商品管理、多门店库存隔离、跨店调拨、智能收银、数据分析及收银员换班等完整业务链路。
+基于 **Spring Cloud Alibaba + Vue3 + YOLOv8 + ONNX** 的连锁超市综合管理平台，涵盖商品管理、多门店库存隔离、跨店调拨、智能收银、AI 视觉识别、数据分析及收银员换班等完整业务链路。
 
 ---
 
@@ -43,23 +43,39 @@
 | Axios | HTTP 请求 |
 | Vue Router 4 | 角色路由守卫 |
 
-### AI 识别服务（Python）
+### AI 识别服务（Python + ONNX）
 
 | 技术 | 说明 |
 |------|------|
 | Flask | RESTful API（端口 5000） |
-| YOLOv8n | 迁移学习微调，10 类超市商品端到端识别（~3.2M 参数） |
-| OpenCV | 图像解码与预处理 |
-| Systemd | 开机自启，异常自动重启，内存 <200MB |
+| YOLOv8n | 自建 1219 张 10 类数据集迁移学习微调 |
+| ONNX Runtime | 推理引擎，内存 < 300MB，无 PyTorch 依赖 |
+| OpenCV | 图像预处理、边缘检测、颜色分析 |
+| Systemd | 开机自启，异常自动重启 |
 
-> **v3.0 起**：替换早期 HSV 色彩二级判定方案，改为在自建数据集（218 张 / 459 框）上微调 YOLOv8n，模型直接输出 10 类中文商品名，无需额外规则。
+> **v4.0 起**：推理引擎由 PyTorch 替换为 ONNX Runtime，内存占用降低 40%（500MB → 300MB），适配 2 核 2G 边缘服务器。模型基于 1219 张自建数据集训练，2521 个标注实例，验证集 mAP@0.5 = 0.929。
 
-### Systemd 服务
+---
 
-| 服务 | 说明 |
-|------|------|
-| `supermarket-ai.service` | AI 识别开机自启，崩溃自动重启 |
-| `supermarket-*.service` | 6 个微服务 systemd 守护 |
+## 🧠 AI 识别核心特性
+
+### 模型训练
+- **数据集**：1219 张图片（手机实拍 + 视频抽帧），2521 个多边形标注框，7:2:1 分层拆分
+- **10 类商品**：可口可乐、百事可乐、雪碧、芬达、农夫山泉、王老吉、红牛、脉动、乐事、康师傅
+- **增强策略**：Mosaic、Mixup(0.15)、Copy-Paste(0.1)、±45°旋转、透视变换、缩放抖动
+- **训练配置**：YOLOv8n，640×640，80 epochs，RTX 4060 GPU，AMP 混合精度
+- **mAP@0.5 = 0.929**，mAP@0.5:0.95 = 0.834
+
+### 推理优化
+- **ONNX Runtime**：模型导出为 ONNX 格式（11.7MB），onnxruntime 推理，自动回退 PyTorch
+- **F1-最优置信度校准**：在验证集 234 张图上逐类计算 P-R 曲线，取 F1 最大值对应的置信度作为该类阈值（0.19~0.78），替代人工手调
+- **分级阈值体系**：脉动 0.78（最严）→ 可口可乐 0.68 → 康师傅 0.72 → 百事可乐 0.20（默认）→ 农夫山泉 0.45
+
+### 后处理策略
+- **Canny 纹理过滤**：对百事可乐/脉动/红牛等易误检类，检测边界框内边缘密度 < 2% 判定为纯色背景误检
+- **遮挡救援机制**：首轮检出 < 3 个时，对未检出类别置信度阈值自动减半二次检索
+- **HSV 颜色分析**：乐事薯片检测后，依据包装主色调区分原味（黄色）与青柠味（绿色）
+- **NAME_MAP 映射**：英文类名精确映射到数据库商品全名（含规格）
 
 ---
 
@@ -82,7 +98,7 @@
 
 ### 智能收银（POS）
 - **换班系统**：开班输入备用金 → 收银 → 交班自动对账（理论现金 vs 实际现金）
-- **AI 视觉识别**：YOLOv8n 迁移学习微调，端到端识别 10 类商品（可口可乐/百事可乐/雪碧/芬达/农夫山泉/王老吉/红牛/脉动/乐事/康师傅），NAME_MAP 英文→中文映射
+- **AI 视觉识别**：YOLOv8n + ONNX 推理，端到端识别 10 类商品，含纹理过滤、遮挡救援、颜色子类分析
 - **条形码扫描**：扫码枪键盘输入自动识别，输入框手动查找
 - **热门商品**：按 `product_sales` 累计销量 TOP10，点即加入购物车
 - **会员积分**：1000 积分抵 5 元，散客/会员双模式
@@ -106,7 +122,7 @@
 - JDK 1.8 / Maven 3.6+
 - MySQL 8.0 / Redis 6.2+
 - Node.js 16+
-- Python 3.8+（AI 服务可选）
+- Python 3.8+（AI 服务）
 
 ### 1. 后端
 ```bash
@@ -127,24 +143,24 @@ npm run dev       # 开发
 npm run build     # 生产 → dist/
 ```
 
-### 3. AI 服务
+### 3. AI 服务（ONNX 模式，推荐）
 ```bash
-pip install ultralytics flask flask-cors opencv-python
-# 手动运行
+pip install flask flask-cors opencv-python onnxruntime
+
+# 确保 best.onnx 与 ai_server.py 同目录
 cd 前端 && python ai_server.py   # 端口 5000
 
-# 或配置 systemd 开机自启（推荐）
+# 或配置 systemd 开机自启
 sudo vim /etc/systemd/system/supermarket-ai.service
 sudo systemctl enable --now supermarket-ai
 ```
+
+> 若 ONNX 加载失败，自动回退 PyTorch（需额外安装 `ultralytics`）。
 
 ### 4. 种子数据
 ```bash
 # 导入商品数据（432 条，17 品类）
 mysql -u root -p supermarket_product < product_import.sql
-
-# 初始化库存（每商品 × 3 门店）
-# 见服务器部署文档
 ```
 
 ---
@@ -156,74 +172,61 @@ mysql -u root -p supermarket_product < product_import.sql
 ├── 前端/
 │   ├── supermarket-ui/      # Vue3 前端项目
 │   │   ├── src/views/       # 页面组件
-│   │   │   ├── Login.vue    # 登录页（暗色主题 + 居中品牌标识）
-│   │   │   ├── Pos.vue      # 收银台（换班 + AI 识别）
+│   │   │   ├── Login.vue    # 登录页
+│   │   │   ├── Pos.vue      # 收银台（AI 识别 + 换班）
 │   │   │   ├── Product.vue  # 商品定价管理
 │   │   │   ├── Analysis.vue # 数据分析看板
 │   │   │   └── ...
 │   │   └── dist/            # 生产构建输出
-│   └── ai_server.py         # Python AI 识别服务
+│   ├── ai_server.py         # AI 识别服务（ONNX）
+│   ├── best.onnx            # ONNX 推理模型（11.7MB）
+│   └── best.pt              # PyTorch 模型备份
 │
-└── 连锁超市微服务管理系统/
-    └── supermarket-cloud/   # Spring Cloud 父工程
-        ├── supermarket-gateway/
-        ├── supermarket-auth/
-        ├── supermarket-product/
-        ├── supermarket-inventory/
-        ├── supermarket-order/
-        └── supermarket-analysis/
+├── 连锁超市微服务管理系统/
+│   └── supermarket-cloud/   # Spring Cloud 父工程
+│       ├── supermarket-gateway/
+│       ├── supermarket-auth/
+│       ├── supermarket-product/
+│       ├── supermarket-inventory/
+│       ├── supermarket-order/
+│       └── supermarket-analysis/
+│
+└── 论文/
+    ├── 图/                  # ER图、流程图等
+    └── 材料整理/            # 参考文献
 ```
 
 ---
 
 ## 📋 更新日志
 
+### v4.0 (2026-06-22)
+- **ONNX 推理引擎**：模型导出 ONNX 格式，onnxruntime 推理，内存降低 40%，移除生产环境 PyTorch 依赖
+- **v5 模型**：自建数据集扩增至 1219 张图片、2521 标注实例，mAP@0.5 = 0.929
+- **F1-最优置信度校准**：验证集 234 张图逐类计算最优阈值（0.19~0.78），替代人工手调
+- **Canny 纹理过滤**：边缘密度 < 2% 判定为纯色背景误检，解决百事可乐/脉动/红牛"看颜色猜商品"问题
+- **遮挡救援机制**：检出 < 3 个时自动二次检索，阈值减半捞回被遮挡商品
+- **HSV 颜色子类分析**：乐事薯片根据包装主色调区分原味（黄）与青柠味（绿）
+- **NAME_MAP 精确化**：映射至数据库商品全名（含规格），如"可口可乐 500ml"
+- **论文参考**：借鉴 Jiang(2025) 注意力机制思路，从后处理层面创新解决遮挡与误检问题
+
 ### v3.1 (2026-05-21)
-- **store 门店表**：新增 `store` 表 + Store 实体 + StoreMapper，OrderMapper 由硬编码 switch 改为跨库 @Select 查询
-- **7 级保质期分类**：InventoryService 由 3 大类升级为 7 级精细分类（烘焙1/乳制品6/饮品冷冻9/零食熟食12/主粮干货18/调味品罐头24/纸品个护酒类36）
+- **store 门店表**：新增 `store` 表 + Store 实体 + StoreMapper
+- **7 级保质期分类**：由 3 大类升级为 7 级精细分类
 - **DataInitializer**：新增门店自动初始化（旗舰店/社区店/生鲜店）
-- **代码清理**：ProductController 注释 YOLOv5→YOLOv8；InventoryController 移除未使用的 CompletableFuture import
 
 ### v3.0 (2026-05-20)
-- YOLOv8n 迁移学习微调：自建 218 张 10 类商品数据集，RTX 4060 GPU 训练
-- 端到端识别替代 HSV 颜色分析，ai_server.py 精简至 60 行
+- YOLOv8n 迁移学习微调：自建 218 张数据集，端到端识别替代 HSV 颜色分析
 - NAME_MAP 英文类名→中文商品名映射
-- 新增训练损失曲线 + 混淆矩阵论文图表
+- 训练损失曲线 + 混淆矩阵
 
-### v2.3 (2026-05-17)
-- AI：确认 6 色系通道 → 7 种饮料 + 21 条 COCO 商品映射
-- 偏好分析：堆叠柱状图 → 雷达图
-- 系统开发流程图拖拽编辑器
-
-
-### v2.2 (2026-05-17)
-- 渡边极简黑白 UI：Lenis 平滑滚动 + 自定义光标 + Landing 页面
-- 收银员排班分析：工时计算 + 备用金 + 对账差异表
-- 补货自动刷新：补货后推荐列表即时更新
-- Inventory/Product/Analysis/Transfer 统一设计语言
-
-### v2.1 (2026-05-17)
+### v2.x (2026-05-16~17)
 - 补货推荐算法 v4：频率×销量双因子 + ABC 帕累托分类
-- 库存排序：过期→临期→缺货→正常
-- 库存清零：clearInventory 仅归零不删除
-- 条形码：Transfer/Pos 下拉框支持搜索，product/barcode 接口
-- 分析页补货清单 + Excel 导出（xlsx）
-- UTF8mb4 编码修复，保质期按品类 INSERT
-- replenish_record 表记录补货历史
+- 库存四级排序、跨店调拨 FIFO
+- AI：COCO 类别映射 + 颜色识别初级方案
+- 换班系统、条形码支持、会员积分
 
-### v2.0 (2026-05-16)
-- AI：25+ COCO 类别映射，7 种饮料颜色识别，阈值降至 0.35
-- 条形码：`/product/barcode/{code}` 接口 + 前端输入框 + 扫码枪键盘监听
-- 收银台：pos-mode 去全局卡片包裹，头栏精简与购物车像素对齐
-- 字体：全页面放大适配答辩截图（普通顾客 16px 基准）
-- 布局：摄像头回归左侧面板自适应宽度，热门商品 18px 大字体
-
-### v1.0 (2026-05-15)
-- 换班系统：shift_record 表 + 开班/交班对账
-- BCrypt + Spring Security + Redis 缓存
-- @Scheduled 定时数据聚合
-- 商品数据：432 条 17 品类 + 条形码字段
-- 订单流水号 + 门店信息 + 小票展示
+---
 
 ## 📝 许可证
 
