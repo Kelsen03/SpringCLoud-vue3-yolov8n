@@ -2,8 +2,8 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const request = axios.create({
-  // 生产环境使用相对路径，开发环境使用代理或硬编码
-  baseURL: 'http://8.148.236.60:8000', 
+  // 生产环境用相对路径走 nginx 代理，开发环境直连 localhost
+  baseURL: import.meta.env.PROD ? '/api' : 'http://localhost:8000',
   timeout: 5000
 })
 

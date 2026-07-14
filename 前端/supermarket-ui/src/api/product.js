@@ -41,9 +41,9 @@ export const getHotProducts = () => {
 
 // AI 智能识别商品接口
 export const aiRecognizeProduct = (base64Image) => {
-  // 修改为指向您阿里云服务器上的 Python AI 服务端口 (5000)
-  // 使用独立的 axios 实例，避免携带不必要的 token 导致跨域问题
-  return axios.post('http://8.148.236.60:5000/api/detect', { image: base64Image }, {
+  // 生产环境走 nginx 代理，开发环境直连 localhost:5000
+  const aiUrl = import.meta.env.PROD ? '/api' : 'http://localhost:5000/api'
+  return axios.post(`${aiUrl}/detect`, { image: base64Image }, {
     headers: {
       'Content-Type': 'application/json'
     }

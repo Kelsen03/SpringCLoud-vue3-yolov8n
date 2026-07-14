@@ -26,3 +26,8 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+
+# AI 识别服务配置
+ai:
+  service:
+    url: http://localhost:5000/api/detect

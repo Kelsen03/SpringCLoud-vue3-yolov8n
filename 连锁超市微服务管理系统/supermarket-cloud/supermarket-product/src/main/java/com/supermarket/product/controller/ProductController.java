@@ -16,12 +16,17 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @RestController
 @RequestMapping("/product")
 public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @Value("${ai.service.url}")
+    private String pythonAiUrl;
 
     // AI 智能收银商品识别接口
     @PostMapping("/ai-recognize")
@@ -37,7 +42,6 @@ public class ProductController {
         try {
             // 1. 调用 Python AI 微服务进行 YOLOv8 图像识别
             RestTemplate restTemplate = new RestTemplate();
-            String pythonAiUrl = "http://localhost:5000/api/detect"; // Python 服务地址
             
             Map<String, String> aiRequest = new HashMap<>();
             aiRequest.put("image", base64Image);
