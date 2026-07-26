@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 const request = axios.create({
   // 开发环境通过 Vite proxy 转发，生产环境通过 Nginx proxy_pass
   baseURL: '/api',
-  timeout: 10000
+  timeout: 30000
 })
 
 request.interceptors.request.use(config => {
