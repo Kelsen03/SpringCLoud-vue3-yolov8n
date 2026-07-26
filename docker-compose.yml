@@ -143,6 +143,7 @@ services:
     environment:
       - SERVER_PORT=8000
       - NACOS_SERVER_ADDR=nacos:8848
+      - SPRING_CLOUD_NACOS_DISCOVERY_FAIL_FAST=false
       - JWT_SECRET=${JWT_SECRET}
     ports:
       - "8000:8000"

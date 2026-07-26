@@ -24,7 +24,7 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-            .antMatchers("/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/doc.html").permitAll()
+            .antMatchers("/auth/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/doc.html").permitAll()
             .anyRequest().authenticated()
             .and()
             .httpBasic().disable()
