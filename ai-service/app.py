@@ -3,24 +3,152 @@ from flask_cors import CORS
 import base64
 import cv2
 import numpy as np
-from ultralytics import YOLO
+import onnxruntime as ort
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-# 加载微调后的 10 类超市商品检测模型
-model_path = "best.pt"  # 云服务器上与 ai_server.py 同目录
+# ============================================================
+# 类名映射（顺序必须与训练时的 names 一致！）
+# ============================================================
+CLASS_NAMES_EN = [
+    "cocacola", "pepsi", "sprite", "fanta",
+    "nongfu spring", "wanglaoji", "redbull", "mizone",
+    "lays", "masterkong",
+]
+
+NAME_MAP = {
+    "cocacola": "可口可乐 500ml",
+    "pepsi": "百事可乐 500ml",
+    "sprite": "雪碧 500ml",
+    "fanta": "芬达橙味 500ml",
+    "nongfu spring": "农夫山泉 550ml",
+    "wanglaoji": "王老吉凉茶 310ml",
+    "redbull": "红牛维生素饮料 250ml",
+    "mizone": "脉动青柠味 600ml",
+    "lays": "乐事原味薯片 75g",
+    "masterkong": "康师傅红烧牛肉面 103g",
+}
+
+CLASS_CONF = {
+    "nongfu spring": 0.12,
+    "wanglaoji": 0.15,
+    "redbull": 0.20,
+    "pepsi": 0.30,
+    "mizone": 0.28,
+}
+DEFAULT_CONF = 0.20
+TEXTURE_CHECK_CLASSES = {"pepsi", "redbull", "mizone"}
+
+# ============================================================
+# 加载 ONNX 模型
+# ============================================================
+session = None
 try:
-    model = YOLO(model_path)
-    print(f"模型加载成功: {list(model.names.values())}")
+    session = ort.InferenceSession("best.onnx",
+        providers=['CPUExecutionProvider'])
+    input_name = session.get_inputs()[0].name
+    input_shape = session.get_inputs()[0].shape  # [1,3,H,W]
+    IMG_SIZE = input_shape[2]
+    print(f"ONNX 模型加载成功: input={input_shape}")
 except Exception as e:
     print(f"模型加载失败: {e}")
-    model = None
+
+
+def letterbox(img, new_shape=640, color=(114, 114, 114)):
+    """等比缩放 + 填充"""
+    shape = img.shape[:2]
+    r = min(new_shape / shape[0], new_shape / shape[1])
+    new_unpad = (int(round(shape[1] * r)), int(round(shape[0] * r)))
+    dw, dh = new_shape - new_unpad[0], new_shape - new_unpad[1]
+    dw, dh = dw // 2, dh // 2
+    img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    top, bottom = dh, new_shape - new_unpad[1] - dh
+    left, right = dw, new_shape - new_unpad[0] - dw
+    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    return img, r, (dw, dh)
+
+
+def edge_density(crop):
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150)
+    return np.count_nonzero(edges) / edges.size
+
+
+def classify_lays(img, box):
+    x1, y1, x2, y2 = map(int, box[:4])
+    crop = img[y1:y2, x1:x2]
+    if crop.size == 0:
+        return NAME_MAP["lays"]
+    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    green_mask = cv2.inRange(hsv, (35, 40, 40), (85, 255, 255))
+    yellow_mask = cv2.inRange(hsv, (10, 40, 40), (35, 255, 255))
+    green_ratio = np.count_nonzero(green_mask) / green_mask.size
+    yellow_ratio = np.count_nonzero(yellow_mask) / yellow_mask.size
+    if green_ratio > 0.05:
+        return "乐事青柠味薯片 75g"
+    return "乐事原味薯片 75g"
+
+
+def process_results(output, img_h, img_w, ratio, pad):
+    """
+    解析 ONNX 输出 [1, 4+num_classes, num_boxes]
+    返回 list of (x1,y1,x2,y2, conf, ename)
+    """
+    num_classes = len(CLASS_NAMES_EN)
+    output = output[0]  # [4+num_classes, num_boxes]
+    bboxes_raw = output[:4, :]  # [4, N] — cx, cy, w, h
+    scores = output[4:4+num_classes, :]  # [num_classes, N]
+
+    # 转 xyxy（相对于模型输入尺寸 640x640）
+    cx, cy, w, h = bboxes_raw[0], bboxes_raw[1], bboxes_raw[2], bboxes_raw[3]
+    x1 = cx - w / 2
+    y1 = cy - h / 2
+    x2 = cx + w / 2
+    y2 = cy + h / 2
+
+    # 每框取最高分类分
+    class_ids = np.argmax(scores, axis=0)
+    confidences = np.max(scores, axis=0)
+
+    # 缩放回原图
+    # 1. 先还原 letterbox 填充
+    x1 = (x1 - pad[0]) / ratio
+    y1 = (y1 - pad[1]) / ratio
+    x2 = (x2 - pad[0]) / ratio
+    y2 = (y2 - pad[1]) / ratio
+
+    # 2. 裁剪到原图范围
+    x1 = np.clip(x1, 0, img_w)
+    y1 = np.clip(y1, 0, img_h)
+    x2 = np.clip(x2, 0, img_w)
+    y2 = np.clip(y2, 0, img_h)
+
+    # NMS
+    boxes_list = np.stack([x1, y1, x2, y2], axis=1)
+    indices = cv2.dnn.NMSBoxes(
+        boxes_list.tolist(),
+        confidences.tolist(),
+        score_threshold=0.05,
+        nms_threshold=0.6,
+    )
+    if len(indices) == 0:
+        return []
+
+    results = []
+    for idx in indices.flatten():
+        results.append((
+            float(x1[idx]), float(y1[idx]), float(x2[idx]), float(y2[idx]),
+            float(confidences[idx]),
+            CLASS_NAMES_EN[int(class_ids[idx])],
+            boxes_list[idx],  # full box for crop
+        ))
+    return results
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    status = "ok" if model is not None else "degraded"
+    status = "ok" if session is not None else "degraded"
     return jsonify({"status": status}), 200
 
 
@@ -43,115 +171,66 @@ def detect_objects():
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
             return jsonify({"error": "Failed to decode image"}), 400
-        if model is None:
+        if session is None:
             return jsonify({"error": "Model not loaded"}), 500
 
-        results = model(img, conf=0.10, iou=0.6, agnostic_nms=False, verbose=False)
+        h, w = img.shape[:2]
+
+        # 预处理 — letterbox + normalize + CHW + batch
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_lb, ratio, pad = letterbox(img_rgb, IMG_SIZE)
+        img_norm = img_lb.astype(np.float32) / 255.0
+        img_chw = np.transpose(img_norm, (2, 0, 1))
+        img_batch = np.expand_dims(img_chw, 0)
+
+        # 推理
+        outputs = session.run(None, {input_name: img_batch})
+        dets = process_results(outputs[0], h, w, ratio, pad)
+
         detected = []
+        for x1, y1, x2, y2, conf, ename, box_arr in dets:
+            min_conf = CLASS_CONF.get(ename, DEFAULT_CONF)
+            if conf < min_conf:
+                continue
 
-        # 模型类名 → 数据库商品名映射（精确到数据库中的商品全名）
-        NAME_MAP = {
-            "cocacola": "可口可乐 500ml",
-            "pepsi": "百事可乐 500ml",
-            "sprite": "雪碧 500ml",
-            "fanta": "芬达橙味 500ml",
-            "nongfu spring": "农夫山泉 550ml",
-            "wanglaoji": "王老吉凉茶 310ml",
-            "redbull": "红牛维生素饮料 250ml",
-            "mizone": "脉动青柠味 600ml",
-            "lays": "乐事原味薯片 75g",       # 默认，会被颜色分析覆盖
-            "masterkong": "康师傅红烧牛肉面 103g",
-        }
-
-        # 分级置信度阈值：数据少/难识别的类用低阈值，常见类用标准阈值
-        CLASS_CONF = {
-            "nongfu spring": 0.12,  # 透明瓶身，难识别
-            "wanglaoji": 0.15,      # 数据偏少
-            "redbull": 0.20,        # 金罐反光易误识别
-            "pepsi": 0.30,          # 蓝色包装易与背景混淆
-            "mizone": 0.28,         # 蓝色瓶身易误识别
-        }
-        DEFAULT_CONF = 0.20  # 其余类标准阈值
-
-        # 易误识别类（蓝色/红色系），需额外纹理检查
-        TEXTURE_CHECK_CLASSES = {"pepsi", "redbull", "mizone"}
-
-        def edge_density(crop):
-            """Canny边缘密度：纯色背景→低，真实商品→高"""
-            gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-            edges = cv2.Canny(gray, 50, 150)
-            return np.count_nonzero(edges) / edges.size
-
-        def classify_lays(img, box):
-            """根据乐事包装主色调区分子类：绿色→青柠味，黄色→原味"""
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            crop = img[y1:y2, x1:x2]
-            if crop.size == 0:
-                return NAME_MAP["lays"]
-            hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-            # 绿色范围 H: 35~85
-            green_mask = cv2.inRange(hsv, (35, 40, 40), (85, 255, 255))
-            # 黄色/橙色范围 H: 10~35
-            yellow_mask = cv2.inRange(hsv, (10, 40, 40), (35, 255, 255))
-            green_ratio = np.count_nonzero(green_mask) / green_mask.size
-            yellow_ratio = np.count_nonzero(yellow_mask) / yellow_mask.size
-            if green_ratio > 0.05:
-                print(f"    乐事颜色分析: 绿={green_ratio:.1%} 黄={yellow_ratio:.1%} → 青柠味")
-                return "乐事青柠味薯片 75g"
-            print(f"    乐事颜色分析: 绿={green_ratio:.1%} 黄={yellow_ratio:.1%} → 原味")
-            return "乐事原味薯片 75g"
-
-        for r in results:
-            for box in r.boxes:
-                cls_id = int(box.cls[0])
-                conf = float(box.conf[0])
-                ename = model.names[cls_id]
-                # 分级阈值过滤：难类低阈值，常见类标准阈值
-                min_conf = CLASS_CONF.get(ename, DEFAULT_CONF)
-                if conf < min_conf:
+            # 纹理检查
+            if ename in TEXTURE_CHECK_CLASSES:
+                bx1, by1, bx2, by2 = map(int, [x1, y1, x2, y2])
+                crop = img[max(0, by1):by2, max(0, bx1):bx2]
+                if crop.size > 0 and edge_density(crop) < 0.02:
                     continue
-                # 纹理检查：纯色背景无边缘→误检，丢弃
-                if ename in TEXTURE_CHECK_CLASSES:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    crop = img[max(0,y1):y2, max(0,x1):x2]
-                    if crop.size > 0 and edge_density(crop) < 0.02:
-                        print(f"  跳过 {ename} 纯色误检 (边缘密度={edge_density(crop):.1%}, conf={conf:.0%})")
-                        continue
-                if ename == "lays":
-                    name = classify_lays(img, box)
-                else:
-                    name = NAME_MAP.get(ename, ename)
-                if name not in detected:
-                    detected.append(name)
-                    print(f"  检测: {name} ({conf:.0%})")
 
-        # === 遮挡救援：检出<3个时，对未检出的类降低阈值再扫 ===
+            if ename == "lays":
+                name = classify_lays(img, (x1, y1, x2, y2))
+            else:
+                name = NAME_MAP.get(ename, ename)
+
+            if name not in detected:
+                detected.append(name)
+                print(f"  检测: {name} ({conf:.0%})")
+
+        # 遮挡救援
         if len(detected) < 3:
-            detected_en = set()  # 已检出的英文类名
+            detected_en = set()
             for name in detected:
                 for en, cn in NAME_MAP.items():
                     if cn == name:
                         detected_en.add(en)
-            for r in results:
-                for box in r.boxes:
-                    cls_id = int(box.cls[0])
-                    conf = float(box.conf[0])
-                    ename = model.names[cls_id]
-                    if ename in detected_en:
-                        continue  # 已检出，跳过
-                    # 救援阈值 = 原阈值 × 0.5
-                    normal_min = CLASS_CONF.get(ename, DEFAULT_CONF)
-                    rescue_min = max(normal_min * 0.5, 0.06)
-                    if conf < rescue_min:
-                        continue
-                    # 救援模式跳过纹理检查（遮挡导致边缘减少）
-                    if ename == "lays":
-                        name = classify_lays(img, box)
-                    else:
-                        name = NAME_MAP.get(ename, ename)
-                    if name not in detected:
-                        detected.append(name)
-                        print(f"  救援检测(遮挡): {name} ({conf:.0%})")
+
+            for x1, y1, x2, y2, conf, ename, box_arr in dets:
+                if ename in detected_en:
+                    continue
+                normal_min = CLASS_CONF.get(ename, DEFAULT_CONF)
+                rescue_min = max(normal_min * 0.5, 0.06)
+                if conf < rescue_min:
+                    continue
+                if ename == "lays":
+                    name = classify_lays(img, (x1, y1, x2, y2))
+                else:
+                    name = NAME_MAP.get(ename, ename)
+                if name not in detected:
+                    detected.append(name)
+                    print(f"  救援检测(遮挡): {name} ({conf:.0%})")
 
         print(f"结果: {detected}")
         return jsonify(detected)
@@ -162,5 +241,5 @@ def detect_objects():
 
 
 if __name__ == "__main__":
-    print("AI 识别服务启动 (端口 5000)")
+    print("AI 识别服务启动 (ONNX Runtime, 端口 5000)")
     app.run(host="0.0.0.0", port=5000)
