@@ -1,0 +1,39 @@
+# Maven
+target/
+*.jar
+*.war
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Env (keep .env.example)
+.env.local
+.env.production
+
+# Claude
+.claude/
