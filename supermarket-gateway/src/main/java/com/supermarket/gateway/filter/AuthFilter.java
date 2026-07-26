@@ -26,6 +26,9 @@ public class AuthFilter implements GlobalFilter {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
 
         try {
             JwtUtil.parseToken(token);
