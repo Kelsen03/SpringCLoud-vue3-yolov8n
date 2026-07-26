@@ -113,8 +113,8 @@ services:
   # ============================================================
   ai-service:
     build:
-      context: .
-      dockerfile: ai-service/Dockerfile
+      context: ./ai-service
+      dockerfile: Dockerfile
     container_name: supermarket-ai
     restart: unless-stopped
     ports:
@@ -137,8 +137,8 @@ services:
   # ============================================================
   supermarket-gateway:
     build:
-      context: .
-      dockerfile: supermarket-gateway/Dockerfile
+      context: ./supermarket-gateway
+      dockerfile: Dockerfile
     container_name: supermarket-gateway
     restart: unless-stopped
     environment:
@@ -162,8 +162,8 @@ services:
   # ============================================================
   supermarket-auth:
     build:
-      context: .
-      dockerfile: supermarket-auth/Dockerfile
+      context: ./supermarket-auth
+      dockerfile: Dockerfile
     container_name: supermarket-auth
     restart: unless-stopped
     environment:
@@ -193,8 +193,8 @@ services:
   # ============================================================
   supermarket-product:
     build:
-      context: .
-      dockerfile: supermarket-product/Dockerfile
+      context: ./supermarket-product
+      dockerfile: Dockerfile
     container_name: supermarket-product
     restart: unless-stopped
     environment:
@@ -230,8 +230,8 @@ services:
   # ============================================================
   supermarket-inventory:
     build:
-      context: .
-      dockerfile: supermarket-inventory/Dockerfile
+      context: ./supermarket-inventory
+      dockerfile: Dockerfile
     container_name: supermarket-inventory
     restart: unless-stopped
     environment:
@@ -260,8 +260,8 @@ services:
   # ============================================================
   supermarket-order:
     build:
-      context: .
-      dockerfile: supermarket-order/Dockerfile
+      context: ./supermarket-order
+      dockerfile: Dockerfile
     container_name: supermarket-order
     restart: unless-stopped
     environment:
@@ -292,8 +292,8 @@ services:
   # ============================================================
   supermarket-analysis:
     build:
-      context: .
-      dockerfile: supermarket-analysis/Dockerfile
+      context: ./supermarket-analysis
+      dockerfile: Dockerfile
     container_name: supermarket-analysis
     restart: unless-stopped
     environment:
