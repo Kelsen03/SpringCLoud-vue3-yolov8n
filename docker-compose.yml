@@ -85,7 +85,6 @@ services:
     environment:
       MODE: standalone
       PREFER_HOST_MODE: hostname
-      SPRING_DATASOURCE_PLATFORM: embedded
       NACOS_AUTH_ENABLE: "false"
       JVM_XMS: 128m
       JVM_XMX: 128m
