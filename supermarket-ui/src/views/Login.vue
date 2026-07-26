@@ -550,6 +550,14 @@ const initReveals = () => {
 // ================== 生命周期 ==================
 onMounted(async () => {
   await nextTick()
+  if (sessionStorage.getItem('intro-shown')) {
+    introActive.value = false
+    initWaves()
+    initCursor()
+    initReveals()
+    return
+  }
+  sessionStorage.setItem('intro-shown', '1')
   initIntro()
 })
 
