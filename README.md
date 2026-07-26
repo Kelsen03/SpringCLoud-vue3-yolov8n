@@ -55,14 +55,35 @@
 | **Lenis** | 平滑滚动 |
 | Axios | HTTP 请求 |
 
-### AI 服务（Python + ONNX）
+### AI 识别服务（Flask + YOLOv8n + ONNX）
 
 | 技术 | 说明 |
 |------|------|
 | Flask | API（端口 5000） |
-| YOLOv8n | 自建 1219 张数据集，mAP@0.5 = 0.929 |
-| ONNX Runtime | 推理引擎，内存 < 300MB |
-| OpenCV | 图像预处理 |
+| YOLOv8n | 自建 10 类 1219 张数据集，mAP@0.5 = 0.925 |
+| ONNX Runtime | best.onnx 推理引擎，内存 < 300MB |
+| OpenCV | HSV 颜色分析 + Canny 纹理过滤 |
+| Ultralytics | best.pt 直接推理（PyTorch 回退） |
+
+#### 推理策略
+
+| 策略 | 说明 |
+|------|------|
+| 分级置信度 | 5 类困难商品用低阈值（0.12~0.30），其余 0.20 |
+| Canny 纹理过滤 | pepsi/redbull/mizone 边缘密度 <2% 判为背景误检 |
+| 遮挡救援 | 检出 <3 件时自动减半阈值二次检索 |
+| HSV 颜色分析 | 乐事薯片：绿色占比 >5% → 青柠味，否则原味 |
+
+#### 分级置信度阈值
+
+| 类别 | 阈值 | 原因 |
+|------|:--:|------|
+| 农夫山泉 | 0.12 | 透明瓶身，特征弱 |
+| 王老吉 | 0.15 | 数据量偏少 |
+| 红牛 | 0.20 | 金罐反光易误识别 |
+| 脉动 | 0.28 | 蓝色瓶身易误识别 |
+| 百事可乐 | 0.30 | 蓝红包装易与背景混淆 |
+| 其余 5 类 | 0.20 | 标准阈值 |
 
 ---
 
@@ -90,7 +111,7 @@ npm run build     # 生产 → dist/
 
 ### AI 服务
 ```bash
-pip install flask flask-cors opencv-python onnxruntime
+pip install flask flask-cors opencv-python onnxruntime ultralytics
 python ai_server.py   # 端口 5000
 ```
 
