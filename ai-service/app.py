@@ -12,9 +12,8 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 # 类名映射（顺序必须与训练时的 names 一致！）
 # ============================================================
 CLASS_NAMES_EN = [
-    "cocacola", "pepsi", "sprite", "fanta",
-    "nongfu spring", "wanglaoji", "redbull", "mizone",
-    "lays", "masterkong",
+    "cocacola", "fanta", "lays", "masterkong", "mizone",
+    "nongfu spring", "pepsi", "redbull", "sprite", "wanglaoji",
 ]
 
 NAME_MAP = {
