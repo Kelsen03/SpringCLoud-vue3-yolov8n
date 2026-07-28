@@ -15,7 +15,7 @@
 
     <div class="table-container">
       <el-table 
-        :data="pagedList"
+        :data="list"
         stripe 
         style="width: 100%"
       >
