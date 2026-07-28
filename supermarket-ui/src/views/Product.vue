@@ -77,9 +77,8 @@
       </el-table>
     </div>
 
-    <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="handlePageChange" />
+      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="20" @current-change="(v) => currentPage = v" />
     </div>
   </div>
 </template>
@@ -91,8 +90,7 @@ import { ElMessage } from 'element-plus'
 
 const list = ref([])
 const currentPage = ref(1)
-const pageSize = 20
-const pagedList = computed(() => list.value.slice((currentPage.value-1)*pageSize.value, currentPage.value*pageSize.value))
+const pagedList = computed(() => list.value.slice((currentPage.value - 1) * 20, currentPage.value * 20))
 const role = localStorage.getItem('role')
 
 const load = async () => {
@@ -118,10 +116,6 @@ const save = async (row) => {
 onMounted(() => {
   load()
 })
-
-const handlePageChange = (page) => {
-  currentPage.value = page
-}
 </script>
 
 <style scoped>

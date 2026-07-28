@@ -95,9 +95,8 @@
       </el-table>
     </div>
 
-    <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="handlePageChange" />
+      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="20" @current-change="(v) => currentPage = v" />
     </div>
   </div>
 </template>
@@ -115,8 +114,7 @@ const storeId = ref(currentStoreId.value)
 const role = ref(localStorage.getItem('role')) 
 const list = ref([])
 const currentPage = ref(1)
-const pageSize = 20
-const pagedList = computed(() => list.value.slice((currentPage.value-1)*pageSize.value, currentPage.value*pageSize.value))
+const pagedList = computed(() => list.value.slice((currentPage.value - 1) * 20, currentPage.value * 20))
 const productMap = ref({}) 
 
 const loadProducts = async () => {
@@ -228,10 +226,6 @@ onMounted(async () => {
   await loadProducts()
   load()
 })
-
-const handlePageChange = (page) => {
-  currentPage.value = page
-}
 </script>
 
 <style scoped>

@@ -93,9 +93,8 @@
       </el-table>
     </div>
 
-    <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="validOrderList.length" :page-size="pageSize" @current-change="handlePageChange" />
+      <el-pagination background layout="prev, pager, next" :total="validOrderList.length" :page-size="20" @current-change="(v) => currentPage = v" />
     </div>
 
     <!-- 订单详情对话框（极简风格） -->
@@ -103,7 +102,6 @@
       v-model="dialogVisible"
       title="订单详情 / ORDER DETAILS"
       width="400px"
-      append-to-body
       custom-class="minimal-dialog"
       :show-close="false"
     >
@@ -181,11 +179,12 @@ const list = ref([])
 const selectedOrders = ref([])
 const role = localStorage.getItem('role')
 const storeId = ref('')
-const currentPage = ref(1)
-const pageSize = 20
 const dialogVisible = ref(false)
 const currentOrder = ref(null)
 const detailLoading = ref(false)
+const currentPage = ref(1)
+
+const pagedList = computed(() => validOrderList.value.slice((currentPage.value - 1) * 20, currentPage.value * 20))
 
 const load = async () => {
   try {
@@ -193,26 +192,14 @@ const load = async () => {
       params: { storeId: storeId.value }
     })
     list.value = res.data || []
-    currentPage.value = 1
   } catch (e) {
     console.error('Failed to load orders', e)
   }
 }
 
-const handlePageChange = (page) => {
-  currentPage.value = page
-}
-
 // 过滤出有效订单（总额大于0的订单）
 const validOrderList = computed(() => {
   return list.value.filter(order => order.totalPrice && order.totalPrice > 0)
-})
-
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const slice = validOrderList.value.slice(start, start + pageSize.value)
-  console.log('pagedList:', currentPage.value, 'total valid:', validOrderList.value.length, 'page items:', slice.length)
-  return slice
 })
 
 // 监听表格勾选事件
