@@ -97,7 +97,7 @@
 
     <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="list.length" layout="prev, pager, next" background />
+      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="(p) => currentPage = p" />
     </div>
   </div>
 </template>
