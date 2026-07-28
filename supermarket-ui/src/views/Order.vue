@@ -210,7 +210,9 @@ const validOrderList = computed(() => {
 
 const pagedList = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
-  return validOrderList.value.slice(start, start + pageSize.value)
+  const slice = validOrderList.value.slice(start, start + pageSize.value)
+  console.log('pagedList:', currentPage.value, 'total valid:', validOrderList.value.length, 'page items:', slice.length)
+  return slice
 })
 
 // 监听表格勾选事件
