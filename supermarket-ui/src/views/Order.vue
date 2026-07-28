@@ -104,14 +104,6 @@
       title="订单详情 / ORDER DETAILS"
       width="400px"
       append-to-body
-    </div>
-
-    <!-- 订单详情对话框（极简风格） -->
-    <el-dialog
-      v-model="dialogVisible"
-      title="订单详情 / ORDER DETAILS"
-      width="400px"
-      append-to-body
       custom-class="minimal-dialog"
       :show-close="false"
     >
