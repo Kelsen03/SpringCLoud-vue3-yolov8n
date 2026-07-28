@@ -104,6 +104,8 @@
       width="400px"
       custom-class="minimal-dialog"
       :show-close="false"
+      append-to-body
+      top="5vh"
     >
       <div class="receipt-card" v-loading="detailLoading" v-if="currentOrder">
         <div class="receipt-header">
