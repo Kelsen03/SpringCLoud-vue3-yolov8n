@@ -15,7 +15,7 @@ spring:
     password: ${MYSQL_PASSWORD:123456}
   sql:
     init:
-      mode: ${SQL_INIT_MODE:always}
+      mode: ${SQL_INIT_MODE:never}
       encoding: UTF-8
 
 management:

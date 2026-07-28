@@ -174,7 +174,7 @@ services:
       - MYSQL_DATABASE=supermarket_auth
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
-      - SQL_INIT_MODE=always
+      - SQL_INIT_MODE=never
       - JWT_SECRET=${JWT_SECRET}
     networks:
       - supermarket-net
@@ -207,7 +207,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - SQL_INIT_MODE=always
+      - SQL_INIT_MODE=never
       - AI_SERVICE_URL=http://ai-service:5000
     networks:
       - supermarket-net
@@ -272,7 +272,7 @@ services:
       - MYSQL_DATABASE=supermarket_order
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
-      - SQL_INIT_MODE=always
+      - SQL_INIT_MODE=never
     networks:
       - supermarket-net
     depends_on:
