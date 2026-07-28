@@ -22,7 +22,7 @@
 
     <div class="table-container">
       <el-table 
-        :data="list" 
+        :data="pagedList"
         stripe
         style="width: 100%"
       >
@@ -94,11 +94,16 @@
         </el-table-column>
       </el-table>
     </div>
+
+    <!-- 分页 -->
+    <div style="display:flex;justify-content:center;margin-top:24px">
+      <el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="list.length" layout="prev, pager, next" background />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getInventoryList, deleteInventory, clearInventory } from '@/api/inventory'
 import { getProductList } from '@/api/product'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -109,6 +114,9 @@ const currentStoreId = ref(userStoreId || 1)
 const storeId = ref(currentStoreId.value) 
 const role = ref(localStorage.getItem('role')) 
 const list = ref([])
+const currentPage = ref(1)
+const pageSize = 20
+const pagedList = computed(() => list.value.slice((currentPage.value-1)*pageSize.value, currentPage.value*pageSize.value))
 const productMap = ref({}) 
 
 const loadProducts = async () => {

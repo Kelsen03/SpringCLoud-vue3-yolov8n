@@ -42,7 +42,7 @@
 
     <div class="table-container" style="width: 100%;">
       <el-table 
-        :data="validOrderList" 
+        :data="pagedList" 
         stripe
         style="width: 100%"
         @selection-change="handleSelectionChange"
@@ -93,11 +93,23 @@
       </el-table>
     </div>
 
+    <!-- 分页 -->
+    <div style="display:flex;justify-content:center;margin-top:24px">
+      <el-pagination
+        v-model:current-page="currentPage"
+        :page-size="pageSize"
+        :total="validOrderList.length"
+        layout="prev, pager, next"
+        background
+      />
+    </div>
+
     <!-- 订单详情对话框（极简风格） -->
     <el-dialog
       v-model="dialogVisible"
       title="订单详情 / ORDER DETAILS"
       width="400px"
+      append-to-body
       custom-class="minimal-dialog"
       :show-close="false"
     >
@@ -175,6 +187,8 @@ const list = ref([])
 const selectedOrders = ref([])
 const role = localStorage.getItem('role')
 const storeId = ref('')
+const currentPage = ref(1)
+const pageSize = 20
 const dialogVisible = ref(false)
 const currentOrder = ref(null)
 const detailLoading = ref(false)
@@ -193,6 +207,11 @@ const load = async () => {
 // 过滤出有效订单（总额大于0的订单）
 const validOrderList = computed(() => {
   return list.value.filter(order => order.totalPrice && order.totalPrice > 0)
+})
+
+const pagedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return validOrderList.value.slice(start, start + pageSize.value)
 })
 
 // 监听表格勾选事件
