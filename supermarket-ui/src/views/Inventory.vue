@@ -97,7 +97,7 @@
 
     <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="(p) => currentPage = p" />
+      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="handlePageChange" />
     </div>
   </div>
 </template>
@@ -228,6 +228,10 @@ onMounted(async () => {
   await loadProducts()
   load()
 })
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+}
 </script>
 
 <style scoped>

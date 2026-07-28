@@ -95,7 +95,15 @@
 
     <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="validOrderList.length" :page-size="pageSize" @current-change="(p) => currentPage = p" />
+      <el-pagination background layout="prev, pager, next" :total="validOrderList.length" :page-size="pageSize" @current-change="handlePageChange" />
+    </div>
+
+    <!-- 订单详情对话框（极简风格） -->
+    <el-dialog
+      v-model="dialogVisible"
+      title="订单详情 / ORDER DETAILS"
+      width="400px"
+      append-to-body
     </div>
 
     <!-- 订单详情对话框（极简风格） -->
@@ -193,9 +201,14 @@ const load = async () => {
       params: { storeId: storeId.value }
     })
     list.value = res.data || []
+    currentPage.value = 1
   } catch (e) {
     console.error('Failed to load orders', e)
   }
+}
+
+const handlePageChange = (page) => {
+  currentPage.value = page
 }
 
 // 过滤出有效订单（总额大于0的订单）

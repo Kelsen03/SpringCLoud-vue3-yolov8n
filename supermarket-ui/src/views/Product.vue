@@ -79,7 +79,7 @@
 
     <!-- 分页 -->
     <div style="display:flex;justify-content:center;margin-top:24px">
-      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="(p) => currentPage = p" />
+      <el-pagination background layout="prev, pager, next" :total="list.length" :page-size="pageSize" @current-change="handlePageChange" />
     </div>
   </div>
 </template>
@@ -118,6 +118,10 @@ const save = async (row) => {
 onMounted(() => {
   load()
 })
+
+const handlePageChange = (page) => {
+  currentPage.value = page
+}
 </script>
 
 <style scoped>
