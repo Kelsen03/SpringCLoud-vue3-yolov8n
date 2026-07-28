@@ -95,11 +95,14 @@ const role = localStorage.getItem('role')
 
 const load = async () => {
   try {
+    console.time('product-load')
     const res = await getProductList()
+    console.timeEnd('product-load')
     list.value = res.data || []
+    console.log('product list loaded:', list.value.length)
   } catch (e) {
+    console.timeEnd('product-load')
     console.error('加载商品列表失败', e)
-    ElMessage.error('Failed to load products')
   }
 }
 

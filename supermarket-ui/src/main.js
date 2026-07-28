@@ -9,6 +9,4 @@ const app = createApp(App)
 app.use(ElementPlus)
 app.use(router)
 
-router.isReady().then(() => {
-  app.mount('#app')
-})
+app.mount('#app')

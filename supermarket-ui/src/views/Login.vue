@@ -550,23 +550,6 @@ const initReveals = () => {
 // ================== 生命周期 ==================
 onMounted(async () => {
   await nextTick()
-  if (sessionStorage.getItem('intro-shown')) {
-    introActive.value = false
-    initWaves()
-    initCursor()
-    initReveals()
-    if (window.innerWidth > 768 && scrollContainer.value) {
-      lenis = new Lenis({
-        wrapper: scrollContainer.value, content: scrollContainer.value,
-        duration: 2.0, easing: t => (t === 1 ? 1 : 1 - Math.pow(1 - t, 4)),
-        smoothWheel: true, smoothTouch: false, wheelMultiplier: 0.75, touchMultiplier: 2,
-      })
-      const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf) }
-      requestAnimationFrame(raf)
-    }
-    return
-  }
-  sessionStorage.setItem('intro-shown', '1')
   initIntro()
 })
 
