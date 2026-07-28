@@ -166,7 +166,7 @@
           <el-tab-pane label="调拨单记录与审批 / Records & Approvals">
             <div class="list-wrapper" style="padding: 20px;">
               <el-button type="primary" plain @click="fetchTransferList" style="margin-bottom: 15px;">刷新列表 / REFRESH</el-button>
-              <el-table :data="transferList" border stripe>
+              <el-table :data="pagedTransfer" border stripe>
                 <el-table-column prop="id" label="单号 / ID" width="100" />
                 <el-table-column prop="createTime" label="时间 / Time" width="200" />
                 <el-table-column prop="productId" label="商品ID / Product" width="120" />
@@ -194,6 +194,9 @@
                   </template>
                 </el-table-column>
               </el-table>
+              <div style="display:flex;justify-content:center;margin-top:16px">
+                <el-pagination background layout="prev, pager, next" :total="transferList.length" :page-size="20" @current-change="(v) => currentPage = v" />
+              </div>
             </div>
           </el-tab-pane>
 
@@ -204,7 +207,7 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref, onMounted } from 'vue'
+import { reactive, watch, ref, onMounted, computed } from 'vue'
 import { transferStock, replenishNewStock, requestTransfer, approveTransfer, rejectTransfer, getTransferList } from '@/api/inventory'
 import { getProductList } from '@/api/product'
 import { getReplenishRecommend } from '@/api/analysis'
@@ -232,6 +235,8 @@ const replenishForm = reactive({
 
 const productList = ref([])
 const transferList = ref([])
+const currentPage = ref(1)
+const pagedTransfer = computed(() => transferList.value.slice((currentPage.value - 1) * 20, currentPage.value * 20))
 const recommendList = ref([])
 
 const loadRecommend = async () => {

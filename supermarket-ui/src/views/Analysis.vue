@@ -44,7 +44,7 @@
           <span class="card-title">收银员排班与财务对账 <span class="en-text">/ CASHIER SHIFT & AUDIT</span></span>
         </div>
         <div class="table-container" style="padding: 20px;">
-          <el-table :data="shiftRecords" stripe style="width: 100%">
+          <el-table :data="pagedRecords" stripe style="width: 100%">
             <el-table-column prop="store_id" label="门店 / Store" width="100">
               <template #default="{ row }">
                 <span class="id-text">店{{ row.store_id }}</span>
@@ -109,6 +109,9 @@
               </template>
             </el-table-column>
           </el-table>
+          <div style="display:flex;justify-content:center;margin-top:16px">
+            <el-pagination background layout="prev, pager, next" :total="shiftRecords.length" :page-size="20" @current-change="(v) => currentPage = v" />
+          </div>
         </div>
       </div>
     </div>
@@ -116,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import { getStoreRank, getProductRank, getPreferenceAnalysis, getShiftRecordAnalysis } from '@/api/analysis'
 import dayjs from 'dayjs'
@@ -130,6 +133,8 @@ let storeChart = null
 let preferenceChart = null
 
 const shiftRecords = ref([])
+const currentPage = ref(1)
+const pagedRecords = computed(() => shiftRecords.value.slice((currentPage.value - 1) * 20, currentPage.value * 20))
 
 const initCharts = async () => {
   if (!rankChart) rankChart = echarts.init(rankChartRef.value)
