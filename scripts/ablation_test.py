@@ -8,11 +8,11 @@ from collections import defaultdict
 def mysql(query):
     """执行 MySQL 查询，返回列表"""
     cmd = f'docker exec supermarket-mysql mysql -uroot -p123456 -h127.0.0.1 -N -B -e "{query}"'
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
-        print(f"查询失败: {result.stderr}")
+        print(f"查询失败: {result.stderr.decode()}")
         return []
-    lines = result.stdout.strip().split('\n')
+    lines = result.stdout.decode().strip().split('\n')
     return [line.split('\t') for line in lines if line]
 
 print("=== 补货推荐算法消融实验 ===\n")
