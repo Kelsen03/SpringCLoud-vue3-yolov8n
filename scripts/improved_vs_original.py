@@ -144,13 +144,10 @@ for row in inv:
         autocorr = consec/max(len(day_list)-1,1)
     else:
         autocorr = 0
-    # 突发惩罚：Bi低但销量高 → Ki折扣
-    ki_penalty = ki * (0.3 if bi<0.15 and ts>avg_sale else 1.0)
-
-    # 乘法公式
-    imp_base = dw*10*(1+bi)*(1+ki_penalty)*abc
-    # 加安全库存
-    imp_with_safety = max(0, round(imp_base + safety*5 - stock))
+    # 乘法公式 + 方差系数（上限30%）+ 自相关惩罚
+    vol_factor = 1 + min(sigma/max(dw,0.01), 0.3)  # 波动加码，最多+30%
+    k_final = ki * (0.3 if (autocorr<0.2 and bi<0.3 and ts>avg_sale) else 1.0)  # 突发惩罚
+    imp_with_safety = max(0, round(dw*10*(1+bi)*(1+k_final)*abc*vol_factor - stock))
 
     # 原始公式
     orig_rec = max(0, round(di*10*(1+bi+ki)*abc - stock))
