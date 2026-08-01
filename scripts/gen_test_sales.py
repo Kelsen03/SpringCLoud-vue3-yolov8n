@@ -57,40 +57,48 @@ for day_offset in range(14):
 
     for store in [1, 2, 3]:
         # 每店每天 80-200 笔（周末更多）
-        n = random.randint(120, 220) if is_weekend else random.randint(70, 140)
+        n = random.randint(60, 100) if is_weekend else random.randint(40, 70)
 
         for _ in range(n):
-            r = random.random()
-            # 按消费习惯选品：70% 高频品, 20% 中频, 8% 低频, 2% 突发
-            if r < 0.40:
-                idx = [i for i in range(p_count) if i % 5 == 0][random.randint(0, p_count//5 - 1)]
-                qty = random.randint(1, 3) * (2 if is_weekend else 1)
-            elif r < 0.65:
-                idx = [i for i in range(p_count) if i % 5 == 1][random.randint(0, p_count//5 - 1)]
-                qty = random.randint(1, 2)
-            elif r < 0.85:
-                idx = [i for i in range(p_count) if i % 5 == 2][random.randint(0, p_count//5 - 1)]
-                qty = random.randint(2, 6) if is_weekend else random.randint(1, 2)
-            elif r < 0.95:
-                idx = [i for i in range(p_count) if i % 5 == 3][random.randint(0, p_count//5 - 1)]
-                qty = random.randint(1, 2)
-            else:
-                idx = [i for i in range(p_count) if i % 5 == 4][random.randint(0, p_count//5 - 1)]
-                qty = random.randint(8, 25) if day_offset == 3 else 0
+            # 每单 1-5 个商品（真实超市购物篮）
+            items_in_order = []
+            total_price = 0
+            n_items = random.choices([1,2,3,4,5], weights=[15,35,30,15,5])[0]
 
-            if qty == 0: continue
-            pid, price = prods[idx]
-            total = price * qty
+            for __ in range(n_items):
+                r = random.random()
+                if r < 0.40:
+                    idx = [i for i in range(p_count) if i % 5 == 0][random.randint(0, max(0, p_count//5 - 1))]
+                    qty = random.randint(1, 4) * (2 if is_weekend else 1)
+                elif r < 0.65:
+                    idx = [i for i in range(p_count) if i % 5 == 1][random.randint(0, max(0, p_count//5 - 1))]
+                    qty = random.randint(1, 3)
+                elif r < 0.85:
+                    idx = [i for i in range(p_count) if i % 5 == 2][random.randint(0, max(0, p_count//5 - 1))]
+                    qty = random.randint(2, 8) if is_weekend else random.randint(1, 3)
+                elif r < 0.95:
+                    idx = [i for i in range(p_count) if i % 5 == 3][random.randint(0, max(0, p_count//5 - 1))]
+                    qty = random.randint(1, 2)
+                else:
+                    idx = [i for i in range(p_count) if i % 5 == 4][random.randint(0, max(0, p_count//5 - 1))]
+                    qty = random.randint(10, 30) if day_offset == 3 else 0
+
+                if qty == 0: continue
+                pid, price = prods[idx]
+                total_price += price * qty
+                items_in_order.append((pid, price, qty))
+
+            if not items_in_order: continue
+
             ot = day.replace(hour=random.randint(8,22), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
             no = f"T{day.strftime('%m%d')}{order_id:06d}"
-
-            sql_buf.append(f"INSERT INTO supermarket_order.`order` VALUES({order_id},'{no}',{store},NULL,{total:.0f},0,'{ot}','test','test');")
-            sql_buf.append(f"INSERT INTO supermarket_order.order_item VALUES({total_items+5000},{order_id},{pid},{price},{qty});")
+            sql_buf.append(f"INSERT INTO supermarket_order.`order` VALUES({order_id},'{no}',{store},NULL,{total_price:.0f},0,'{ot}','test','test');")
+            for pid, price, qty in items_in_order:
+                sql_buf.append(f"INSERT INTO supermarket_order.order_item VALUES({total_items+5000},{order_id},{pid},{price},{qty});")
+                total_items += 1
             order_id += 1
             total_orders += 1
-            total_items += 1
 
-            # 每 500 条 flush 一次
             if len(sql_buf) >= 1000:
                 run('\n'.join(sql_buf))
                 sql_buf = []
