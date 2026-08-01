@@ -157,7 +157,10 @@ for row in inv:
 
     imp_with_safety = max(0, round(imp_base - stock))
     if len(items) == 0:
-        print(f"DEBUG 首个: name={name} dw={dw:.1f} di={di:.1f} bi={bi:.2f} ki={ki:.2f} abc={abc:.1f} cv={cv:.1f} stock={stock} → imp_base={imp_base:.0f} rec={imp_with_safety}")
+        vals = list(daily.values()) if daily else []
+        print(f"DEBUG: {name} pid={pid} store={sid} ts={ts} di={di:.1f} daily_log_keys={(pid,sid) in daily_log}")
+        print(f"  vals({len(vals)}): {vals[:7]}... dw={dw:.1f} σ={sigma:.1f} cv={cv:.1f} abc={abc:.1f} stock={stock}")
+        print(f"  imp_base={imp_base:.0f} = {dw:.1f}*10*{1+bi:.2f}*{1+k_final:.2f}*{abc:.1f}*{vol_boost:.1f}")
 
     # 原始公式
     orig_rec = max(0, round(di*10*(1+bi+ki)*abc - stock))
