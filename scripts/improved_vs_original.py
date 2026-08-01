@@ -156,6 +156,8 @@ for row in inv:
         imp_base = min(imp_base, cap)
 
     imp_with_safety = max(0, round(imp_base - stock))
+    if len(items) == 0:
+        print(f"DEBUG 首个: name={name} dw={dw:.1f} di={di:.1f} bi={bi:.2f} ki={ki:.2f} abc={abc:.1f} cv={cv:.1f} stock={stock} → imp_base={imp_base:.0f} rec={imp_with_safety}")
 
     # 原始公式
     orig_rec = max(0, round(di*10*(1+bi+ki)*abc - stock))
