@@ -144,10 +144,18 @@ for row in inv:
         autocorr = consec/max(len(day_list)-1,1)
     else:
         autocorr = 0
-    # 乘法公式 + 方差系数（上限30%）+ 自相关惩罚
-    vol_factor = 1 + min(sigma/max(dw,0.01), 0.3)  # 波动加码，最多+30%
-    k_final = ki * (0.3 if (autocorr<0.2 and bi<0.3 and ts>avg_sale) else 1.0)  # 突发惩罚
-    imp_with_safety = max(0, round(dw*10*(1+bi)*(1+k_final)*abc*vol_factor - stock))
+    # 乘法公式 + 变异系数缓冲 + 自相关惩罚
+    cv = sigma / max(di, 0.01)  # 变异系数（>1=波动大）
+    vol_boost = 1.1 if cv > 1.0 else 1.0  # 仅波动>100%才加10%
+    k_final = ki * (0.3 if (autocorr<0.2 and bi<0.3 and ts>avg_sale) else 1.0)
+    imp_base = dw*10*(1+bi)*(1+k_final)*abc*vol_boost
+
+    # ABC 后置控制：C类上限=2×日均×10天，A类无上限
+    if abc <= 0.5:
+        cap = max(dw*10*2, stock*3)  # C类最多补日均的20天量或库存3倍
+        imp_base = min(imp_base, cap)
+
+    imp_with_safety = max(0, round(imp_base - stock))
 
     # 原始公式
     orig_rec = max(0, round(di*10*(1+bi+ki)*abc - stock))
