@@ -53,11 +53,7 @@ for row in inv_rows:
     key = (pid, sid)
 
     if key not in sales_map:
-        # 无销售数据 → 保守建议
-        rec = max(0, warn * 5 - stock)
-        for variant in results:
-            results[variant].append({"name": name, "rec": rec, "stock": stock, "warn": warn, "di": 0, "bi": 0, "ki": 0})
-        continue
+        continue  # 跳过无销售数据商品，只看有销售的
 
     ts, sd, oc = sales_map[key]
     di = ts / 14.0         # 日均销量
@@ -80,7 +76,8 @@ for row in inv_rows:
 report = []
 for label, items in results.items():
     avg_rec = sum(i["rec"] for i in items) / max(len(items), 1)
-    under = sum(1 for i in items if i["rec"] == 0 and i["stock"] <= i["warn"])
+    # 补货不足: 建议补货后库存仍低于 3 倍预警线
+    under = sum(1 for i in items if i["rec"] + i["stock"] < i["warn"] * 3)
     report.append((label, avg_rec, under, len(items)))
 
 print("\n" + "=" * 70)
