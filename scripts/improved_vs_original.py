@@ -87,10 +87,10 @@ for row in inv:
     sigma = di * (1.5 - bi) * 1.5
     cv = sigma/max(di,0.01)
 
-    # 乘法公式 + CV缓冲 + 自相关惩罚
-    vol_boost = 1 + min(cv/10, 0.15)  # CV高→加最多15%
-    k_final = ki * (0.3 if bi<0.15 and ts>avg_sale else 1.0)
-    rec_imp = max(0, round(di*10*(1+bi)*(1+k_final)*abc*vol_boost - stock))
+    # 针对性改进（不改变主体公式，只修边缘）
+    k_edge = ki * (0.3 if bi<0.15 and ts>avg_sale else 1.0)  # 突发品: Ki打3折
+    boost = 1.1 if bi>0.8 else 1.0                              # 稳定高频: +10%
+    rec_imp = max(0, round(di*10*(1+bi+k_edge)*abc*boost - stock))
 
     rec_orig = max(0, round(di*10*(1+bi+ki)*abc - stock))
     rec_di = max(0, round(di*10 - stock))
@@ -111,7 +111,7 @@ r3 = [it["imp"] for it in items]
 
 print(f"{'方案':<30} {'均量':>5} {'漏报':>5} {'过度':>5} {'准确':>5} {'总量':>7} {'样本':>5}")
 print("-"*65)
-for s in [stats("①仅Di",r1), stats("②原算法(Di+Bi+Ki)×ABC",r2), stats("③改进(乘法+σ+自相关)",r3)]:
+for s in [stats("①仅Di",r1), stats("②原算法(Di+Bi+Ki)×ABC",r2), stats("③针对性(突发抑制+稳定加强)",r3)]:
     print(f"{s[0]:<30} {s[1]:>3.0f}件 {s[2]:>4}件 {s[3]:>4}件 {s[4]:>4}件 {s[5]:>6}件 {s[6]:>5}")
 print("-"*65)
 
