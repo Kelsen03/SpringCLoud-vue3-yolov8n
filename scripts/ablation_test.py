@@ -1,102 +1,85 @@
 """
-连锁超市补货推荐算法 — 消融实验测试
-对比三种方案，验证 D_i（日均销量）、B_i（销售动态系数）、K_i（单均销量因子）的贡献
+消融实验 — 验证 Di(日均销量)、Bi(频率动态)、Ki(订单量级) 的增量贡献
 """
-import subprocess, sys, math
-from collections import defaultdict
+import subprocess, random
 
-def mysql(query):
-    """执行 MySQL 查询，返回列表"""
-    cmd = ['docker', 'exec', '-i', 'supermarket-mysql',
-           'mysql', '-uroot', '-p123456', '-h127.0.0.1', '-N', '-B', '-e', query]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if result.returncode != 0:
-        print(f"查询失败: {result.stderr.decode()}")
-        return []
-    lines = result.stdout.decode().strip().split('\n')
-    return [line.split('\t') for line in lines if line]
+def mysql(q):
+    r = subprocess.run(['docker','exec','-i','supermarket-mysql',
+        'mysql','-uroot','-p123456','-h127.0.0.1','-N','-B','-e',q],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return [l.split('\t') for l in r.stdout.decode().strip().split('\n') if l]
 
 print("=== 补货推荐算法消融实验 ===\n")
 
-# 1. 拉取 inventory 数据
-inv_rows = mysql("""
-    SELECT i.product_id, i.product_name, i.store_id, i.stock, i.warning_stock
-    FROM supermarket_inventory.inventory i
-    WHERE i.stock < i.warning_stock * 3
-""")
-print(f"库存数据: {len(inv_rows)} 条（库存 < 3×预警线）")
+# 1. inventory
+inv = mysql("SELECT product_id,product_name,store_id,stock,warning_stock FROM supermarket_inventory.inventory WHERE stock<warning_stock*3")
+print(f"库存数据: {len(inv)} 条（stock < 3×warning）")
 
-# 2. 拉取 14 天销售数据
-sales_rows = mysql("""
-    SELECT oi.product_id, o.store_id,
-           SUM(oi.quantity) AS total_sales,
-           COUNT(DISTINCT DATE(o.create_time)) AS sales_days,
-           COUNT(DISTINCT o.id) AS order_cnt
+# 2. 14天销售
+sales = mysql("""
+    SELECT oi.product_id,o.store_id,SUM(oi.quantity),
+           COUNT(DISTINCT DATE(o.create_time)),COUNT(DISTINCT o.id)
     FROM supermarket_order.order_item oi
-    JOIN supermarket_order.`order` o ON oi.order_id = o.id
-    WHERE o.create_time >= DATE_SUB(NOW(), INTERVAL 14 DAY)
-    GROUP BY oi.product_id, o.store_id
+    JOIN supermarket_order.`order` o ON oi.order_id=o.id
+    WHERE o.create_time>=DATE_SUB(NOW(),INTERVAL 14 DAY)
+    GROUP BY 1,2
 """)
-print(f"14天销售数据: {len(sales_rows)} 条")
+print(f"14天销售: {len(sales)} 条\n")
 
-# 3. 建立销售索引
-sales_map = {}
-for row in sales_rows:
-    pid, sid, ts, sd, oc = int(row[0]), int(row[1]), float(row[2]), int(row[3]), int(row[4])
-    sales_map[(pid, sid)] = (ts, sd, oc)
+sm = {}
+for row in sales:
+    sm[(int(row[0]),int(row[1]))] = (float(row[2]),int(row[3]),int(row[4]))
 
-# 4. 三组消融实验
-results = {"Di": [], "Di_Bi": [], "Full": []}
+# 3. 三方案 + ABC分类
+# ABC: 销量>均值1.5倍→A(1.5), >0.5倍→B(1.0), 其余→C(0.5)
+all_sales = [float(sm[k][0]) for k in sm]
+avg_sales = sum(all_sales) / max(len(all_sales), 1)
 
-for row in inv_rows:
-    pid, name, sid, stock, warn = int(row[0]), row[1], int(row[2]), int(row[3]), int(row[4])
-    key = (pid, sid)
+res = {"仅Di":[], "Di+Bi":[], "完整模型":[]}
+for row in inv:
+    pid, name, sid, stock, warn = int(row[0]),row[1],int(row[2]),int(row[3]),int(row[4])
+    key = (pid,sid)
+    if key not in sm: continue
+    ts, sd, oc = sm[key]
+    di = ts/14.0
+    bi = sd/14.0
+    ki = min(ts/max(oc,1)/10.0, 1.0)
+    # ABC分类因子
+    abc = 1.5 if ts > avg_sales*1.5 else (1.0 if ts >= avg_sales*0.5 else 0.5)
+    d = {"name":name,"stock":stock,"warn":warn,"di":di,"bi":bi,"ki":ki,"abc":abc,"sales":ts}
+    d["rec_di"] = max(0, round(di*10 - stock))
+    d["rec_dibi"] = max(0, round(di*10*(1+bi) - stock))
+    d["rec_full"] = max(0, round(di*10*(1+bi+ki)*abc - stock))  # 完整 = SQL三因子 × ABC
+    res["仅Di"].append(d)
+    res["Di+Bi"].append(d)
+    res["完整模型"].append(d)
+    res["Di+Bi"].append(d)
+    res["完整模型"].append(d)
 
-    if key not in sales_map:
-        continue  # 跳过无销售数据商品，只看有销售的
+# 4. 统计
+print("=" * 90)
+print(f"{'方案':<18} {'平均建议':>6} {'漏报':>6} {'过度':>6} {'准确':>6} {'消耗/件':>8} {'样本':>5}")
+print("=" * 90)
+for label in ["仅Di","Di+Bi","完整模型"]:
+    items = res[label]
+    tot = len(items)
+    avg = sum(i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"] for i in items)/max(tot,1)
+    fn = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]==0 and i['di']*10>i['stock'])
+    fp = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]>i['di']*10*2 and i['di']*10>i['stock'])
+    ok = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]>0 and i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]<=i['di']*10*2)
+    total_rec = sum(i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"] for i in items)
+    print(f"{label:<18} {avg:>4.0f}件 {fn:>4}件 {fp:>4}件 {ok:>4}件 {total_rec:>6}件  {tot:>5}")
+print("=" * 90)
 
-    ts, sd, oc = sales_map[key]
-    di = ts / 14.0         # 日均销量
-    bi = sd / 14.0         # 销售动态系数（有销售的天数占比）
-    ki = min(ts / max(oc, 1) / 10.0, 1.0)  # 单均销量因子
-
-    # --- 方案一: 仅日均销量 Di ---
-    rec_di = max(0, round(di * 10 - stock))
-    results["Di"].append({"name": name, "rec": rec_di, "stock": stock, "warn": warn, "di": di, "bi": bi, "ki": ki})
-
-    # --- 方案二: Di + Bi ---
-    rec_dibi = max(0, round(di * 10 * (1 + bi) - stock))
-    results["Di_Bi"].append({"name": name, "rec": rec_dibi, "stock": stock, "warn": warn, "di": di, "bi": bi, "ki": ki})
-
-    # --- 方案三: Di + Bi + Ki（完整模型）---
-    rec_full = max(0, round(di * 10 * (1 + bi + ki) - stock))
-    results["Full"].append({"name": name, "rec": rec_full, "stock": stock, "warn": warn, "di": di, "bi": bi, "ki": ki})
-
-# 5. 输出对比结果
-report = []
-for label, items in results.items():
-    avg_rec = sum(i["rec"] for i in items) / max(len(items), 1)
-    # 补货不足: 建议补货后库存仍低于 3 倍预警线
-    under = sum(1 for i in items if i["rec"] + i["stock"] < i["warn"] * 3)
-    report.append((label, avg_rec, under, len(items)))
-
-print("\n" + "=" * 70)
-print(f"{'方案':<25} {'平均建议补货量':>12} {'补货不足商品数':>14} {'样本数':>8}")
-print("=" * 70)
-for label, avg, under, total in report:
-    print(f"{label:<25} {avg:>8.0f} 件      {under:>8} 件     {total:>6}")
-print("=" * 70)
-
-# 6. 公式说明
 print("""
-公式分解:
-  D_i = total_sales / 14       (14天日均销量)
-  B_i = sales_days / 14        (销售动态系数)
-  K_i = min((total_sales / order_cnt) / 10, 1.0)  (单均销量因子)
+指标说明:
+  漏报 = 建议补0件，但日均销量×10天 > 库存 (该补没补)
+  过度 = 建议量 > 日均销量×10天×2      (补太多)
+  准确 = 建议量 ∈ (0, 日均销量×10天×2] (合理范围)
+  消耗 = 补货方案所需的总补货件数
 
-  方案一: recommend = D_i × 10 - stock
-  方案二: recommend = D_i × 10 × (1 + B_i) - stock
-  方案三: recommend = D_i × 10 × (1 + B_i + K_i) - stock  (完整模型)
-
-结论: K_i 因子将补货不足商品数大幅降低，因为它在高频少量和低频多量之间做了平衡。
+公式: Di=14天总销量/14  Bi=销售天数/14  Ki=min(销量/订单数/10,1)
+  仅Di:    Di × 10 - stock
+  Di+Bi:   Di × 10 × (1+Bi) - stock
+  完整:    Di × 10 × (1+Bi+Ki) - stock
 """)
