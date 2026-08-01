@@ -1,120 +1,90 @@
 """
-生成贴合现实的 14 天超市销售数据
-3 门店 × 412 商品 × 14 天 = ~6000 笔订单
+真实超市补货场景模拟 — 消融实验专用
+50 个高频品占 70% 销量，其余 360+ 品分散
 """
-import subprocess, random
+import subprocess, random, json
 from datetime import datetime, timedelta
 
-def mysql(query):
-    cmd = ['docker', 'exec', '-i', 'supermarket-mysql',
-           'mysql', '-uroot', '-p123456', '-h127.0.0.1', '-N', '-B', '-e', query]
-    r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def mysql(q):
+    r = subprocess.run(['docker','exec','-i','supermarket-mysql','mysql','-uroot','-p123456','-h127.0.0.1','-N','-B','-e',q],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return r.stdout.decode().strip()
 
 def run(sql):
-    """执行非查询 SQL，返回是否成功"""
-    r = subprocess.run(
-        ['docker', 'exec', '-i', 'supermarket-mysql',
-         'mysql', '-uroot', '-p123456', '-h127.0.0.1'],
-        input=sql.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return r.returncode == 0
+    subprocess.run(['docker','exec','-i','supermarket-mysql','mysql','-uroot','-p123456','-h127.0.0.1'],
+                   input=sql.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-products = mysql("SELECT id, name, price FROM supermarket_product.product").strip().split('\n')
-prods = []
-for p in products:
-    parts = p.split('\t')
-    prods.append((int(parts[0]), float(parts[2])))
-
+products = mysql("SELECT id,name,price FROM supermarket_product.product").strip().split('\n')
+prods_all = [(int(p.split('\t')[0]), p.split('\t')[1], float(p.split('\t')[2])) for p in products]
+n = len(prods_all)
 random.seed(42)
-now = datetime.now()
-p_count = len(prods)
 
-# === 现实库存分布 ===
-# 热门品库存偏低（1-20），冷门品库存充裕（30-200）
+# === 50 个核心品（索引 0-49）占 70% 销量 ===
+core = prods_all[:50]
+rest = prods_all[50:]
+
+# === 现实库存：核心品库存低(1-8)，非核心库存正常(20-80) ===
 run("UPDATE supermarket_inventory.inventory SET warning_stock=10;")
-for i, (pid, price) in enumerate(prods):
-    if i % 5 == 0:   stock = random.randint(1, 8)    # 快消品 → 低库存
-    elif i % 5 == 1: stock = random.randint(5, 25)   # 中频品 → 偏低
-    elif i % 5 == 2: stock = random.randint(15, 80)  # 周末型 → 中等
-    elif i % 5 == 3: stock = random.randint(50, 200) # 慢消品 → 高库存
-    else:             stock = random.randint(3, 15)   # 突发型 → 偏低
-    for store in [1, 2, 3]:
-        run(f"UPDATE supermarket_inventory.inventory SET stock={stock} WHERE product_id={pid} AND store_id={store};")
+for pid, name, price in core:
+    for store in [1,2,3]:
+        run(f"UPDATE supermarket_inventory.inventory SET stock={random.randint(1,8)} WHERE product_id={pid} AND store_id={store};")
+for pid, name, price in rest:
+    for store in [1,2,3]:
+        run(f"UPDATE supermarket_inventory.inventory SET stock={random.randint(20,80)} WHERE product_id={pid} AND store_id={store};")
 
-low = mysql("SELECT COUNT(*) FROM supermarket_inventory.inventory WHERE stock<10")
-print(f"库存设置完成，低库存({low}件)")
+now = datetime.now()
+oid, iid = 3000, 5000
+buf = []
+total_o, total_i = 0, 0
 
-# === 生成 14 天销售订单 ===
-print("生成 14 天销售数据...")
-order_id = 3000
-total_orders = 0
-total_items = 0
-sql_buf = []
-
-for day_offset in range(14):
-    day = now - timedelta(days=day_offset)
-    is_weekend = day.weekday() >= 5
+for day_off in range(14):
+    day = now - timedelta(days=day_off)
+    weekend = day.weekday() >= 5
 
     for store in [1, 2, 3]:
-        # 每店每天 80-200 笔（周末更多）
-        n = random.randint(60, 100) if is_weekend else random.randint(40, 70)
-
-        for _ in range(n):
-            # 每单 1-5 个商品（真实超市购物篮）
-            items_in_order = []
-            total_price = 0
-            n_items = random.choices([1,2,3,4,5], weights=[15,35,30,15,5])[0]
-
-            for __ in range(n_items):
-                r = random.random()
-                if r < 0.40:
-                    idx = [i for i in range(p_count) if i % 5 == 0][random.randint(0, max(0, p_count//5 - 1))]
-                    qty = random.randint(1, 4) * (2 if is_weekend else 1)
-                elif r < 0.65:
-                    idx = [i for i in range(p_count) if i % 5 == 1][random.randint(0, max(0, p_count//5 - 1))]
-                    qty = random.randint(1, 3)
-                elif r < 0.85:
-                    idx = [i for i in range(p_count) if i % 5 == 2][random.randint(0, max(0, p_count//5 - 1))]
-                    qty = random.randint(2, 8) if is_weekend else random.randint(1, 3)
-                elif r < 0.95:
-                    idx = [i for i in range(p_count) if i % 5 == 3][random.randint(0, max(0, p_count//5 - 1))]
-                    qty = random.randint(1, 2)
+        # 每店每天 80-150 笔订单
+        for _ in range(random.randint(100, 170) if weekend else random.randint(70, 120)):
+            items = []
+            total = 0
+            # 每单 1-4 件
+            for __ in range(random.choices([1,2,3,4], weights=[20,40,30,10])[0]):
+                if random.random() < 0.70:
+                    # 核心品 — 销量集中
+                    idx = random.randint(0, 49)
+                    pid, name, price = core[idx]
+                    qty = random.randint(1, 4) * (2 if weekend else 1)
                 else:
-                    idx = [i for i in range(p_count) if i % 5 == 4][random.randint(0, max(0, p_count//5 - 1))]
-                    qty = random.randint(10, 30) if day_offset == 3 else 0
+                    idx = random.randint(50, n - 1)
+                    pid, name, price = rest[idx]
+                    qty = random.randint(1, 2)
 
-                if qty == 0: continue
-                pid, price = prods[idx]
-                total_price += price * qty
-                items_in_order.append((pid, price, qty))
-
-            if not items_in_order: continue
+                total += price * qty
+                items.append((pid, price, qty))
 
             ot = day.replace(hour=random.randint(8,22), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
-            no = f"T{day.strftime('%m%d')}{order_id:06d}"
-            sql_buf.append(f"INSERT INTO supermarket_order.`order` VALUES({order_id},'{no}',{store},NULL,{total_price:.0f},0,'{ot}','test','test');")
-            for pid, price, qty in items_in_order:
-                sql_buf.append(f"INSERT INTO supermarket_order.order_item VALUES({total_items+5000},{order_id},{pid},{price},{qty});")
-                total_items += 1
-            order_id += 1
-            total_orders += 1
+            no = f"T{day.strftime('%m%d')}{oid:06d}"
+            buf.append(f"INSERT INTO supermarket_order.`order` VALUES({oid},'{no}',{store},NULL,{total:.0f},0,'{ot}','test','test');")
+            for pid, price, qty in items:
+                buf.append(f"INSERT INTO supermarket_order.order_item VALUES({iid},{oid},{pid},{price},{qty});")
+                iid += 1
+                total_i += 1
+            oid += 1
+            total_o += 1
 
-            if len(sql_buf) >= 1000:
-                run('\n'.join(sql_buf))
-                sql_buf = []
+            if len(buf) >= 1000:
+                run('\n'.join(buf))
+                buf.clear()
 
-if sql_buf:
-    run('\n'.join(sql_buf))
-
-print(f"生成: {total_orders} 笔订单, {total_items} 条明细")
+if buf: run('\n'.join(buf))
 
 # 更新 product_sales
 run("DELETE FROM supermarket_order.product_sales;")
-run("""
-    INSERT INTO supermarket_order.product_sales (store_id, product_id, total_quantity)
-    SELECT o.store_id, oi.product_id, SUM(oi.quantity)
-    FROM supermarket_order.order_item oi
-    JOIN supermarket_order.`order` o ON oi.order_id = o.id
-    GROUP BY o.store_id, oi.product_id;
-""")
-print("完成")
+run("""INSERT INTO supermarket_order.product_sales (store_id,product_id,total_quantity)
+    SELECT o.store_id,oi.product_id,SUM(oi.quantity) FROM supermarket_order.order_item oi
+    JOIN supermarket_order.`order` o ON oi.order_id=o.id GROUP BY 1,2;""")
+
+print(f"核心品(50): 库存 1-8, 占 70% 销量")
+print(f"非核心({n-50}): 库存 20-80, 占 30% 销量")
+print(f"生成: {total_o} 笔订单, {total_i} 条明细")
+print(f"低库存品: {mysql('SELECT COUNT(*) FROM supermarket_inventory.inventory WHERE stock<10')} 件")
+print("运行: python3 scripts/ablation_test.py")
