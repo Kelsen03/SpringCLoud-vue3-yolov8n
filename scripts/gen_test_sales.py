@@ -55,7 +55,7 @@ for day_off in range(14):
                     qty = random.randint(1, 4) * (2 if weekend else 1)
                 else:
                     idx = random.randint(50, n - 1)
-                    pid, name, price = rest[idx]
+                    pid, name, price = prods_all[idx]
                     qty = random.randint(1, 2)
 
                 total += price * qty
