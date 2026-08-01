@@ -12,10 +12,11 @@ def mysql(query):
     out = r.stdout.decode().strip()
     return [l.split('\t') for l in out.split('\n') if l]
 
-products = mysql("SELECT id, name, price, category FROM supermarket_product.product ORDER BY id LIMIT 50")
-print(f"选前 50 个产品生成测试数据")
+products = mysql("SELECT id, name, price, category FROM supermarket_product.product ORDER BY id")
+print(f"产品数: {len(products)}")
 
 prods = [(int(p[0]), p[1], float(p[2]), p[3]) for p in products]
+n = len(prods)
 
 random.seed(42)
 now = datetime.now()
@@ -23,131 +24,88 @@ order_id = 3000
 item_id = 5000
 all_sql = []
 
-# 产品角色分配（索引 0-49）
-fast_movers  = [0,1,2,3,4]              # 每天都有销售（可乐、雪碧等）
-weekenders   = [5,6,7,8,9]              # 周末高峰型（零食、冰淇淋）
-mid_freq     = [10,11,12,13,14,15]      # 3-4天/周
-slow_movers  = [16,17,18,19,20,21]      # 1-2天/14天
-big_basket   = [22,23,24,25]            # 大量购买（整箱/家庭装）→ K_i 高
-small_basket = [26,27,28,29,30]         # 少量多次（口香糖/小零食）→ K_i 低
-burst_items  = [31,32,33]               # 某天突然爆发
+# 产品分组（按索引%n循环利用）
+fast_movers  = [i for i in range(n) if i % 5 == 0]      # 每天卖
+mid_freq     = [i for i in range(n) if i % 5 == 1]      # 隔天卖
+weekenders   = [i for i in range(n) if i % 5 == 2]      # 周末型
+slow_movers  = [i for i in range(n) if i % 5 == 3]      # 偶尔卖
+burst_items  = [i for i in range(n) if i % 5 == 4]      # 突发型
 
 for day_offset in range(14):
     day = now - timedelta(days=day_offset)
     is_weekend = (day.weekday() >= 5)
-    day_factor = 1.5 if is_weekend else 1.0
 
     for store in [1, 2, 3]:
-        store_factor = random.uniform(0.8, 1.2)
+        # 快消品：天天卖，每天 3-5 笔
+        for _ in range(random.randint(3, 5)):
+            idx = random.choice(fast_movers)
+            pid, name, price, cat = prods[idx]
+            qty = random.randint(1, 5) * (2 if is_weekend else 1)
+            items = [(item_id, order_id, pid, price, qty)]
+            total = price * qty
+            ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
+            no = f"T{day.strftime('%m%d')}{order_id:05d}"
+            all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
+            for iid, oid, ipid, ipr, iqt in items:
+                all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
+            order_id += 1; item_id += 1
 
-        # --- 快消品：天天卖，每天 2-4 笔 ---
-        if random.random() < 0.95:
-            for _ in range(random.randint(2, 4)):
-                idx = random.choice(fast_movers)
-                pid, name, price, cat = prods[idx]
-                qty = round(random.randint(1, 3) * day_factor * store_factor)
-                if qty < 1: continue
-                items = [(item_id + len(all_sql), order_id, pid, price, qty)]
-                total = price * qty
-                ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
-                no = f"T{day.strftime('%m%d')}{order_id:05d}"
-                all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
-                for iid, oid, ipid, ipr, iqt in items:
-                    all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-                order_id += 1
-                item_id += len(items)
-
-        # --- 周末型：仅周末大量销售 ---
+        # 周末型：仅周末大卖
         if is_weekend and random.random() < 0.8:
             for _ in range(random.randint(1, 3)):
                 idx = random.choice(weekenders)
                 pid, name, price, cat = prods[idx]
-                qty = random.randint(3, 8)
-                items = [(item_id + len(all_sql), order_id, pid, price, qty)]
+                qty = random.randint(3, 10)
+                items = [(item_id, order_id, pid, price, qty)]
                 total = price * qty
                 ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
                 no = f"T{day.strftime('%m%d')}{order_id:05d}"
                 all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
                 for iid, oid, ipid, ipr, iqt in items:
                     all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-                order_id += 1
-                item_id += len(items)
+                order_id += 1; item_id += 1
 
-        # --- 中频型：每周 3-4 天 ---
-        if random.random() < 0.35:
+        # 中频型
+        if random.random() < 0.4:
             idx = random.choice(mid_freq)
             pid, name, price, cat = prods[idx]
-            qty = round(random.randint(1, 4) * day_factor * store_factor)
-            if qty < 1: continue
-            items = [(item_id + len(all_sql), order_id, pid, price, qty)]
+            qty = random.randint(1, 3)
+            items = [(item_id, order_id, pid, price, qty)]
             total = price * qty
             ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
             no = f"T{day.strftime('%m%d')}{order_id:05d}"
             all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
             for iid, oid, ipid, ipr, iqt in items:
                 all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-            order_id += 1
-            item_id += len(items)
+            order_id += 1; item_id += 1
 
-        # --- 慢消型：14天中仅 1-3 天 ---
-        if day_offset in [0, 5, 11] and random.random() < 0.6:
+        # 慢消型：14天内仅 2-3 天
+        if day_offset in [0, 5, 11] and random.random() < 0.5:
             idx = random.choice(slow_movers)
             pid, name, price, cat = prods[idx]
             qty = random.randint(1, 2)
-            items = [(item_id + len(all_sql), order_id, pid, price, qty)]
+            items = [(item_id, order_id, pid, price, qty)]
             total = price * qty
             ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
             no = f"T{day.strftime('%m%d')}{order_id:05d}"
             all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
             for iid, oid, ipid, ipr, iqt in items:
                 all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-            order_id += 1
-            item_id += len(items)
+            order_id += 1; item_id += 1
 
-        # --- 大单型：单次买巨量（低 K_i）---
-        if random.random() < 0.15:
-            idx = random.choice(big_basket)
-            pid, name, price, cat = prods[idx]
-            qty = random.randint(8, 15)
-            items = [(item_id + len(all_sql), order_id, pid, price, qty)]
-            total = price * qty
-            ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
-            no = f"T{day.strftime('%m%d')}{order_id:05d}"
-            all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
-            for iid, oid, ipid, ipr, iqt in items:
-                all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-            order_id += 1
-            item_id += len(items)
-
-        # --- 小单型：少量多次（高 K_i）---
-        if random.random() < 0.25:
-            idx = random.choice(small_basket)
-            pid, name, price, cat = prods[idx]
-            qty = random.randint(1, 2)
-            items = [(item_id + len(all_sql), order_id, pid, price, qty)]
-            total = price * qty
-            ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
-            no = f"T{day.strftime('%m%d')}{order_id:05d}"
-            all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
-            for iid, oid, ipid, ipr, iqt in items:
-                all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-            order_id += 1
-            item_id += len(items)
-
-        # --- 突发爆量：某一天突然卖很多 ---
-        if day_offset == 3 and random.random() < 0.9:
+        # 突发爆量：某一天大量
+        if day_offset == 3 and random.random() < 0.7:
             idx = random.choice(burst_items)
             pid, name, price, cat = prods[idx]
-            qty = random.randint(20, 40)  # 爆量！
-            items = [(item_id + len(all_sql), order_id, pid, price, qty)]
+            qty = random.randint(15, 40)
+            items = [(item_id, order_id, pid, price, qty)]
             total = price * qty
             ot = day.replace(hour=random.randint(8,21), minute=random.randint(0,59)).strftime('%Y-%m-%d %H:%M:%S')
             no = f"T{day.strftime('%m%d')}{order_id:05d}"
             all_sql.append(f"INSERT INTO supermarket_order.`order` (id,order_no,store_id,total_price,points,create_time) VALUES({order_id},'{no}',{store},{total:.0f},0,'{ot}');")
             for iid, oid, ipid, ipr, iqt in items:
                 all_sql.append(f"INSERT INTO supermarket_order.order_item (id,order_id,product_id,price,quantity) VALUES({iid},{oid},{ipid},{ipr},{iqt});")
-            order_id += 1
-            item_id += len(items)
+            order_id += 1; item_id += 1
 
 # 批量导入
 print(f"生成 {len(all_sql)} 条 SQL，写入中...")
@@ -176,4 +134,23 @@ mysql("""
 orders = mysql("SELECT COUNT(*) FROM supermarket_order.`order` WHERE order_no LIKE 'T%'")
 items = mysql("SELECT COUNT(*) FROM supermarket_order.order_item WHERE id >= 5000")
 print(f"导入完成: {orders[0][0]} 笔测试订单, {items[0][0]} 条测试明细")
+
+# --- 重置所有库存为 200（统一基线），然后压低有销售的商品库存 ---
+print("重置库存为 200...")
+mysql("UPDATE supermarket_inventory.inventory SET stock=200, warning_stock=10")
+
+print("压低有销售的商品库存，制造补货需求...")
+mysql("""
+    UPDATE supermarket_inventory.inventory i
+    JOIN (
+        SELECT oi.product_id, o.store_id, SUM(oi.quantity) AS sold
+        FROM supermarket_order.order_item oi
+        JOIN supermarket_order.`order` o ON oi.order_id = o.id
+        WHERE o.create_time >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+        GROUP BY oi.product_id, o.store_id
+    ) s ON i.product_id = s.product_id AND i.store_id = s.store_id
+    SET i.stock = FLOOR(RAND() * 12) + 1
+""")
+low = mysql("SELECT COUNT(*) FROM supermarket_inventory.inventory WHERE stock < warning_stock")
+print(f"低库存商品: {low[0][0]} 件（stock < 10）")
 print("可运行 python3 scripts/ablation_test.py 进行消融实验")
