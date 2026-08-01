@@ -196,6 +196,12 @@ print("-"*95)
 # 漏报/过度率对比
 print(f"\n漏报率: 仅Di={stats('',r1,items)[2]/len(items)*100:.0f}% → 原算法={stats('',r2,items)[2]/len(items)*100:.0f}% → 改进={stats('',r3,items)[2]/len(items)*100:.0f}%")
 print(f"过度率: 仅Di={stats('',r1,items)[3]/len(items)*100:.0f}% → 原算法={stats('',r2,items)[3]/len(items)*100:.0f}% → 改进={stats('',r3,items)[3]/len(items)*100:.0f}%")
+# debug
+from itertools import islice
+ov = [(it["name"],it["di"],it["di"]*10*2.5,it["imp"]) for it in items if it["imp"]>it["di"]*10*2.5]
+print(f"过度详情(前5): {ov[:5]}")
+ov2 = [(it["name"],it["di"],it["di"]*10*2.5,it["imp"]) for it in items if it["imp"]<=it["di"]*10*2.5]
+print(f"非过度详情(前3): {ov2[:3]}")
 
 # 案例分析
 print(f"\n=== 案例分析（5个随机商品）===")
