@@ -156,7 +156,7 @@ for start in range(0, len(all_sql), batch_size):
     batch = '\n'.join(all_sql[start:start+batch_size])
     r = subprocess.run(
         ['docker', 'exec', '-i', 'supermarket-mysql', 'mysql', '-uroot', '-p123456', '-h127.0.0.1'],
-        input=batch.encode(), capture_output=True)
+        input=batch.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if r.returncode != 0:
         err = r.stderr.decode()[:200]
         if 'Duplicate' not in err:
