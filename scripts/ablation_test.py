@@ -7,8 +7,9 @@ from collections import defaultdict
 
 def mysql(query):
     """执行 MySQL 查询，返回列表"""
-    cmd = f'docker exec supermarket-mysql mysql -uroot -p123456 -h127.0.0.1 -N -B -e "{query}"'
-    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cmd = ['docker', 'exec', '-i', 'supermarket-mysql',
+           'mysql', '-uroot', '-p123456', '-h127.0.0.1', '-N', '-B', '-e', query]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         print(f"查询失败: {result.stderr.decode()}")
         return []
