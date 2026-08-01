@@ -1,7 +1,7 @@
 """
-消融实验 — 验证 Di(日均销量)、Bi(频率动态)、Ki(订单量级) 的增量贡献
+消融实验 — 完整复现论文算法（SQL三因子 + Java ABC分类）
 """
-import subprocess, random
+import subprocess
 
 def mysql(q):
     r = subprocess.run(['docker','exec','-i','supermarket-mysql',
@@ -9,13 +9,7 @@ def mysql(q):
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return [l.split('\t') for l in r.stdout.decode().strip().split('\n') if l]
 
-print("=== 补货推荐算法消融实验 ===\n")
-
-# 1. inventory
 inv = mysql("SELECT product_id,product_name,store_id,stock,warning_stock FROM supermarket_inventory.inventory WHERE stock<warning_stock*3")
-print(f"库存数据: {len(inv)} 条（stock < 3×warning）")
-
-# 2. 14天销售
 sales = mysql("""
     SELECT oi.product_id,o.store_id,SUM(oi.quantity),
            COUNT(DISTINCT DATE(o.create_time)),COUNT(DISTINCT o.id)
@@ -24,62 +18,49 @@ sales = mysql("""
     WHERE o.create_time>=DATE_SUB(NOW(),INTERVAL 14 DAY)
     GROUP BY 1,2
 """)
-print(f"14天销售: {len(sales)} 条\n")
 
 sm = {}
-for row in sales:
-    sm[(int(row[0]),int(row[1]))] = (float(row[2]),int(row[3]),int(row[4]))
+for s in sales:
+    sm[(int(s[0]),int(s[1]))] = (float(s[2]),int(s[3]),int(s[4]))
 
-# 3. 三方案 + ABC分类
-# ABC: 销量>均值1.5倍→A(1.5), >0.5倍→B(1.0), 其余→C(0.5)
-all_sales = [float(sm[k][0]) for k in sm]
-avg_sales = sum(all_sales) / max(len(all_sales), 1)
+# ABC阈值
+all_ts = [v[0] for v in sm.values()]
+avg_sale = sum(all_ts)/max(len(all_ts),1)
 
-res = {"仅Di":[], "Di+Bi":[], "完整模型":[]}
+items = []
 for row in inv:
-    pid, name, sid, stock, warn = int(row[0]),row[1],int(row[2]),int(row[3]),int(row[4])
-    key = (pid,sid)
-    if key not in sm: continue
-    ts, sd, oc = sm[key]
+    pid,name,sid,stock,warn = int(row[0]),row[1],int(row[2]),int(row[3]),int(row[4])
+    k = (pid,sid)
+    if k not in sm: continue
+    ts,sd,oc = sm[k]
     di = ts/14.0
     bi = sd/14.0
     ki = min(ts/max(oc,1)/10.0, 1.0)
-    # ABC分类因子
-    abc = 1.5 if ts > avg_sales*1.5 else (1.0 if ts >= avg_sales*0.5 else 0.5)
-    d = {"name":name,"stock":stock,"warn":warn,"di":di,"bi":bi,"ki":ki,"abc":abc,"sales":ts}
-    d["rec_di"] = max(0, round(di*10 - stock))
-    d["rec_dibi"] = max(0, round(di*10*(1+bi) - stock))
-    d["rec_full"] = max(0, round(di*10*(1+bi+ki)*abc - stock))  # 完整 = SQL三因子 × ABC
-    res["仅Di"].append(d)
-    res["Di+Bi"].append(d)
-    res["完整模型"].append(d)
-    res["Di+Bi"].append(d)
-    res["完整模型"].append(d)
+    abc = 1.5 if ts>avg_sale*1.5 else (1.0 if ts>=avg_sale*0.5 else 0.5)
+    items.append({"name":name,"s":stock,"w":warn,"di":di,"bi":bi,"ki":ki,"abc":abc,"ts":ts})
 
-# 4. 统计
-print("=" * 90)
-print(f"{'方案':<18} {'平均建议':>6} {'漏报':>6} {'过度':>6} {'准确':>6} {'消耗/件':>8} {'样本':>5}")
-print("=" * 90)
-for label in ["仅Di","Di+Bi","完整模型"]:
-    items = res[label]
-    tot = len(items)
-    avg = sum(i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"] for i in items)/max(tot,1)
-    fn = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]==0 and i['di']*10>i['stock'])
-    fp = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]>i['di']*10*2 and i['di']*10>i['stock'])
-    ok = sum(1 for i in items if i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]>0 and i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"]<=i['di']*10*2)
-    total_rec = sum(i[f"rec_{'di' if label=='仅Di' else 'dibi' if label=='Di+Bi' else 'full'}"] for i in items)
-    print(f"{label:<18} {avg:>4.0f}件 {fn:>4}件 {fp:>4}件 {ok:>4}件 {total_rec:>6}件  {tot:>5}")
-print("=" * 90)
+def stats(label, recs):
+    n = len(recs)
+    if n==0: return (label,0,0,0,0,0)
+    avg = sum(recs)/n
+    miss = sum(1 for i in range(n) if recs[i]==0 and items[i]["di"]*10>items[i]["s"])
+    over = sum(1 for i in range(n) if recs[i]>items[i]["di"]*10*2 and items[i]["di"]*10>items[i]["s"])
+    ok = sum(1 for i in range(n) if recs[i]>0 and recs[i]<=items[i]["di"]*10*2)
+    total = sum(recs)
+    return (label,avg,miss,over,ok,total,n)
+
+r1 = [max(0,round(it["di"]*10-it["s"])) for it in items]
+r2 = [max(0,round(it["di"]*10*(1+it["bi"])-it["s"])) for it in items]
+r3 = [max(0,round(it["di"]*10*(1+it["bi"]+it["ki"])*it["abc"]-it["s"])) for it in items]
+
+print(f"\n库存:{len(inv)} 销售:{len(sales)} 有数据:{len(items)} 均值销量:{avg_sale:.0f}\n")
+print(f"{'方案':<22} {'建议':>5} {'漏报':>5} {'过度':>5} {'准确':>5} {'总量':>7} {'样本':>5}")
+print("-"*60)
+for s in [stats("①仅Di",r1), stats("②Di+Bi",r2), stats("③完整(Di+Bi+Ki)×ABC",r3)]:
+    print(f"{s[0]:<22} {s[1]:>3.0f}件 {s[2]:>4}件 {s[3]:>4}件 {s[4]:>4}件 {s[5]:>6}件 {s[6]:>5}")
+print("-"*60)
 
 print("""
-指标说明:
-  漏报 = 建议补0件，但日均销量×10天 > 库存 (该补没补)
-  过度 = 建议量 > 日均销量×10天×2      (补太多)
-  准确 = 建议量 ∈ (0, 日均销量×10天×2] (合理范围)
-  消耗 = 补货方案所需的总补货件数
-
-公式: Di=14天总销量/14  Bi=销售天数/14  Ki=min(销量/订单数/10,1)
-  仅Di:    Di × 10 - stock
-  Di+Bi:   Di × 10 × (1+Bi) - stock
-  完整:    Di × 10 × (1+Bi+Ki) - stock
+ABC分类: A(>均值×1.5)→×1.5  B(均值×0.5~1.5)→×1.0  C(<均值×0.5)→×0.5
+完整模型 = Di × 10 × (1 + Bi + Ki) × ABC因子 - stock
 """)
