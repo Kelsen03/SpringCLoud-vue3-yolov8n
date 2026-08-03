@@ -4,6 +4,17 @@ import base64
 import cv2
 import numpy as np
 import onnxruntime as ort
+import time
+from collections import defaultdict
+
+
+# ============================================================
+# 滑动窗口投票缓冲区 — 抗遮挡/闪帧
+# ============================================================
+WINDOW_SIZE = 5          # 保留最近5帧
+VOTE_THRESHOLD = 2       # 2/3投票以上才确认
+detection_window = []     # [{name: timestamp}, ...]  最近N帧的检测结果
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -231,8 +242,28 @@ def detect_objects():
                     detected.append(name)
                     print(f"  救援检测(遮挡): {name} ({conf:.0%})")
 
-        print(f"结果: {detected}")
-        return jsonify(detected)
+        # 滑动窗口投票 — 抗遮挡闪帧
+        now_ts = time.time()
+        detection_window.append((now_ts, set(detected)))
+        # 只保留最近窗口
+        while len(detection_window) > WINDOW_SIZE:
+            detection_window.pop(0)
+        # 清理超过 10 秒的旧帧
+        detection_window[:] = [(t, s) for t, s in detection_window if now_ts - t < 10]
+
+        # 投票：商品必须在最近 3 帧中出现 ≥2 次才确认
+        recent = detection_window[-min(3, len(detection_window)):]
+        confirmed = []
+        for name in detected:
+            count = sum(1 for _, products in recent if name in products)
+            if count >= VOTE_THRESHOLD or len(detection_window) < 3:
+                confirmed.append(name)
+        if len(confirmed) < len(detected):
+            dropped = set(detected) - set(confirmed)
+            print(f"  投票过滤: {dropped} (不足{len(recent)}帧中{VOTE_THRESHOLD}票)")
+
+        print(f"结果: {confirmed}")
+        return jsonify(confirmed)
 
     except Exception as e:
         print(f"推理错误: {e}")
