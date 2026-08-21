@@ -172,6 +172,7 @@ def detect_objects():
         return jsonify({"error": "No image provided"}), 400
 
     b64 = data["image"]
+    count_mode = request.args.get("count") == "1"
     if "," in b64:
         b64 = b64.split(",")[1]
 
@@ -198,6 +199,7 @@ def detect_objects():
         dets = process_results(outputs[0], h, w, ratio, pad)
 
         detected = []
+        detected_items = []
         for x1, y1, x2, y2, conf, ename, box_arr in dets:
             min_conf = CLASS_CONF.get(ename, DEFAULT_CONF)
             if conf < min_conf:
@@ -214,6 +216,13 @@ def detect_objects():
                 name = classify_lays(img, (x1, y1, x2, y2))
             else:
                 name = NAME_MAP.get(ename, ename)
+
+            if count_mode:
+                detected_items.append({
+                    "name": name,
+                    "confidence": round(float(conf), 4),
+                    "box": [int(x1), int(y1), int(x2), int(y2)],
+                })
 
             if name not in detected:
                 detected.append(name)
@@ -238,9 +247,34 @@ def detect_objects():
                     name = classify_lays(img, (x1, y1, x2, y2))
                 else:
                     name = NAME_MAP.get(ename, ename)
+                if count_mode:
+                    detected_items.append({
+                        "name": name,
+                        "confidence": round(float(conf), 4),
+                        "box": [int(x1), int(y1), int(x2), int(y2)],
+                    })
                 if name not in detected:
                     detected.append(name)
                     print(f"  救援检测(遮挡): {name} ({conf:.0%})")
+
+        # 数量模式返回当前帧的独立检测框，不经过按名称去重和跨帧投票。
+        # 重复商品或低置信度结果必须由收银员确认，避免直接用于自动结算。
+        if count_mode:
+            counts = defaultdict(int)
+            for item in detected_items:
+                counts[item["name"]] += 1
+            needs_confirmation = (
+                any(value > 1 for value in counts.values())
+                or any(item["confidence"] < 0.60 for item in detected_items)
+            )
+            print(f"数量建议: {dict(counts)}")
+            print(f"数量确认: {'需要人工确认' if needs_confirmation else '可进入确认环节'}")
+            return jsonify({
+                "items": detected_items,
+                "counts": dict(counts),
+                "requires_confirmation": needs_confirmation,
+                "auto_checkout_allowed": False,
+            })
 
         # 滑动窗口投票 — 抗遮挡闪帧
         now_ts = time.time()
